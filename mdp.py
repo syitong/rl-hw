@@ -78,8 +78,8 @@ if __name__ == '__main__':
         POLICY[s] = pie
     V_init = np.zeros(len(trans_mat))
 
-    V = policy_eval(trans_mat, V_init, POLICY, theta = 0.001)
-    # V, policy = policy_iter(trans_mat, V_init, POLICY, theta = 0.0001, gamma = 0.4)
-    # V, policy = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.8)
+    # V = policy_eval(trans_mat, V_init, POLICY, theta = 0.0001)
+    # V, policy = policy_iter(trans_mat, V_init, POLICY, theta = 0.0001, gamma = 1)
+    V, policy = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.8)
     print(V.reshape((4,-1)))
     print(np.array([np.argmax(p) for _,p in policy.items()]).reshape(4,-1))

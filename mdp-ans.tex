@@ -1,0 +1,48 @@
+\begin{enumerate}
+  \item The value function for the uniform policy is,
+  \begin{minted}{python}
+[[0.9985325  0.9987232  0.99895326 0.99915473 0.99928509]
+ [0.99871183 0.99891328 0.9991653  0.99937299 0.99954243]
+ [0.99892201 0.99916511 0.99949767 0.99968168 0.        ]
+ [0.99907972 0.99940152 0.         0.99986515 0.99992771]]
+ \end{minted}
+  \item The value function returned by the \texttt{policy\_iter} function is
+  \begin{minted}{python}
+[[1. 1. 1. 1. 1.]
+ [1. 1. 1. 1. 1.]
+ [1. 1. 1. 1. 0.]
+ [1. 1. 0. 1. 1.]]
+  \end{minted}
+  The corresponding policy is
+  \begin{minted}{python}
+[[0 0 0 0 0]
+ [0 0 0 0 0]
+ [0 0 0 0 0]
+ [0 0 0 0 0]]
+  \end{minted}
+  So the robot at location 0 will keep trying going upward and
+  never reach the exits. Because the only rewards at exits do
+  not tell the robot to find the exits as soon as possible, the
+  value function obtained in this way only reflects the possibility
+  of reaching exits of the position.
+  \item The value function returned by the \texttt{value\_iter}
+  function is
+  \begin{minted}{python}
+[[0.4096 0.512  0.64   0.64   0.8   ]
+ [0.512  0.64   0.8    0.8    1.    ]
+ [0.64   0.8    1.     1.     0.    ]
+ [0.8    1.     0.     1.     1.    ]]
+\end{minted}
+  The corresponding policy is
+  \begin{minted}{python}
+[[1 1 2 1 2]
+ [1 1 2 1 2]
+ [1 1 2 1 0]
+ [1 1 0 3 0]]
+  \end{minted}
+  This policy achieves the goal of finding exits with the fewest
+  moves. By setting the discount factor less than 1, if the robot
+  tries to maximize the total reward, it has to reduce the number
+  of moves to avoid the reward at exits discounted to much. So
+  the discount factor helps it to achieve the goal.
+\end{enumerate}
