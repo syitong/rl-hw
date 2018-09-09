@@ -9,27 +9,26 @@ LEFT = 3
 
 class GridworldEnv(discrete.DiscreteEnv):
     """
-    Grid World environment from Sutton's Reinforcement Learning book chapter 4.
-    You are an agent on an MxN grid and your goal is to reach the terminal
-    state at the top left or the bottom right corner.
+    Grid World environment testing the effect of discount factor on finding
+    shortest path. Your goal is to reach the exits as soon as possible.
 
-    For example, a 4x4 grid looks as follows:
+    The grid looks as follows:
 
-    T  o  o  o
-    o  x  o  o
+    o  o  o  o
     o  o  o  o
     o  o  o  T
+    o  T  o  o
 
-    x is your position and T are the two terminal states.
+    Ts are the exits and x is the location of the agent.
 
     You can take actions in each direction (UP=0, RIGHT=1, DOWN=2, LEFT=3).
     Actions going off the edge leave you in your current state.
-    You receive a reward of -1 at each step until you reach a terminal state.
+    You receive a reward of 1 after the step to an exit state.
     """
 
     metadata = {'render.modes': ['human', 'ansi']}
 
-    def __init__(self, shape=[4,4]):
+    def __init__(self, shape=[4,5]):
         if not isinstance(shape, (list, tuple)) or not len(shape) == 2:
             raise ValueError('shape argument must be a list/tuple of length 2')
 
@@ -51,25 +50,24 @@ class GridworldEnv(discrete.DiscreteEnv):
 
             P[s] = {a : [] for a in range(nA)}
 
-            is_done = lambda s: s == 0 or s == (nS - 1)
-            reward = 0.0 if is_done(s) else -1.0
+            is_done = lambda s: s == 14 or s == 17
 
             # We're stuck in a terminal state
             if is_done(s):
-                P[s][UP] = [(1.0, s, reward, True)]
-                P[s][RIGHT] = [(1.0, s, reward, True)]
-                P[s][DOWN] = [(1.0, s, reward, True)]
-                P[s][LEFT] = [(1.0, s, reward, True)]
+                P[s][UP] = [(1.0, s, 0., True)]
+                P[s][RIGHT] = [(1.0, s, 0., True)]
+                P[s][DOWN] = [(1.0, s, 0., True)]
+                P[s][LEFT] = [(1.0, s, 0., True)]
             # Not a terminal state
             else:
                 ns_up = s if y == 0 else s - MAX_X
                 ns_right = s if x == (MAX_X - 1) else s + 1
                 ns_down = s if y == (MAX_Y - 1) else s + MAX_X
                 ns_left = s if x == 0 else s - 1
-                P[s][UP] = [(1.0, ns_up, reward, is_done(ns_up))]
-                P[s][RIGHT] = [(1.0, ns_right, reward, is_done(ns_right))]
-                P[s][DOWN] = [(1.0, ns_down, reward, is_done(ns_down))]
-                P[s][LEFT] = [(1.0, ns_left, reward, is_done(ns_left))]
+                P[s][UP] = [(1.0, ns_up, is_done(ns_up), is_done(ns_up))]
+                P[s][RIGHT] = [(1.0, ns_right, is_done(ns_right), is_done(ns_right))]
+                P[s][DOWN] = [(1.0, ns_down, is_done(ns_down), is_done(ns_down))]
+                P[s][LEFT] = [(1.0, ns_left, is_done(ns_left), is_done(ns_left))]
 
             it.iternext()
 
@@ -93,16 +91,17 @@ class GridworldEnv(discrete.DiscreteEnv):
         while not it.finished:
             s = it.iterindex
             y, x = it.multi_index
+            is_done = lambda s: s == 14 or s == 17
 
             if self.s == s:
                 output = " x "
-            elif s == 0 or s == self.nS - 1:
+            elif is_done(s):
                 output = " T "
             else:
                 output = " o "
 
             if x == 0:
-                output = output.lstrip() 
+                output = output.lstrip()
             if x == self.shape[1] - 1:
                 output = output.rstrip()
 
