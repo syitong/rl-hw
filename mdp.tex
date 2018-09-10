@@ -78,6 +78,15 @@ def policy_eval(P, policy=uniform_policy, theta=0.0001, gamma=0.9):
           corresponding location. Initialize V with zeros.
     '''
     \end{minted}
+    Other than the code, please put your value function with 2 decimals
+    in your solution to the homework as follows,
+    \begin{minted}{python}
+[[14.81 17.63 14.81 12.91 10.85]
+ [12.45 14.81 12.45 10.85  9.12]
+ [10.46 12.45 10.46  9.12  7.66]
+ [ 8.79 10.46  8.79  7.66  6.44]
+ [ 7.38  8.79  7.38  6.44  5.41]]
+    \end{minted}
 
     \item Now implement the policy iteration algorithm in the following
     function to find the optimal policy.
@@ -93,6 +102,16 @@ def policy_iter(P, theta=0.0001, gamma=0.9):
           Initialize the policy with zeros.
     '''
     \end{minted}
+    Other than the code, please put your value function with 2 decimals
+    in your solution. And also visualize the optimal policy in
+    the grid in your solution as follows,
+    \begin{tabular}{ccccc}
+      n & w & w & se & e \\
+      n & w & n & s & e \\
+      n & w & nw & e & e \\
+      n & w & n & e & w \\
+      n & w & n & e & w \\
+    \end{tabular}
 
     \item Implement value iteration algorithm in the following
     function to find the optimal policy.
@@ -100,6 +119,8 @@ def policy_iter(P, theta=0.0001, gamma=0.9):
 def value_iter(P, theta=0.0001, gamma=0.9):
     return V, policy
     \end{minted}
+    Other than the code, please put your value function with 2 decimals
+    in your solution. And also visualize the optimal policy.
 
     \item Now we change the setup of the gridworld to an episodic task.
     Whenever the agent moves to \texttt{A'} or \texttt{B'}, the game ends.
@@ -108,12 +129,13 @@ def value_iter(P, theta=0.0001, gamma=0.9):
 def gridworld_ep(slip_prob=0.2):
     return P
     \end{minted}
-
-    \item Under the episodic setup, our goal is to teach the agent to get the
+    Under the episodic setup, our goal is to teach the agent to get the
     maximum reward 10 with fewest steps. Now run your \texttt{value\_iter} with
     \texttt{gamma=1}. Based on the optimal value function returned by your
     function, can we achieve the goal?
     By setting \texttt{gamma} to 0.8 and 0.9, can we achieve the goal?
+    Put your value function for \texttt{gamma=0.8} with 2 decimals in your
+    solution.
 
     \item What is the critical value of \texttt{gamma} that varies the behavior of
     the agent? Support your answer with math.
