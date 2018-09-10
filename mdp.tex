@@ -1,0 +1,93 @@
+%!TEX root = ./homework1.tex
+
+\paragraph{Domain Definition}
+(Variant of Example 3.5 on p60) Consider the 5 by 5 gridworld representation of
+\begin{center}
+    \begin{tabular}{ccccc}
+         o & o & o & o & o\\
+         o & o & o & o & o\\
+         o & o & o & o & x\\
+         o & o & x & o & o\\
+    \end{tabular}
+\end{center}
+A robot in the grid can move in 4 ways: up, right, down, left. Moves that
+would take the robot off the grid leave its location unchanged.  Any move from
+``o'' to ``x'' results a reward of $ 1 $ and other moves result $ 0 $ reward.
+Once the robot moves to ``x'', it will not be able to move back to ``o'' and
+the game ends. We want the robot to find the exits with fewest moves.
+
+The 20 states in the grid will be labeled by the integers
+from $ 0 $ to $ 19 $ from left to right and top to bottom. The four moves
+are encoded by up=0, right=1, down=2, left=3.
+
+Develop environment: \texttt{python 3.5+}.
+
+Allowed non-standard packages: \texttt{numpy}, \texttt{gym}.
+
+Make sure that your functions follow the definitions given here with
+the correct default values defined and passed.
+In other words, it must return the desired
+results when the grader calls the functions in the following way,
+\begin{minted}{python}
+V = policy_eval()
+V,policy = policy_iter()
+V,policy = value_iter()
+\end{minted}
+\begin{enumerate}
+    \item Assume that the robot follows the uniform policy, that is,
+    take one of four moves: up, right, down, left
+    with equal probabilities at any state. Implement the policy evaluation
+    algorithm and compute the value function of the uniform policy.
+    The function should be defined as below:
+    \begin{minted}{python}
+def policy_eval(policy=uniform, P=P, theta=0.0001, gamma=1):
+    return V
+    '''
+        policy: probability distribution over actions for each states.
+          Default to uniform policy.
+        P: containing the transition probability and reward for
+        each (s',s,a). Default to the transition probabilities and
+          rewards of this task.
+        theta: stopping condition.
+        gamma: the discount factor.
+        V: 4 by 5 numpy array where each entry is the value of the
+          corresponding location. Initialize V with zeros.
+    '''
+    \end{minted}
+    I recommend you organize transition probabilities and rewards in the way
+    \texttt{openAI gym} environment 'FrozenLake-v0' organizes \texttt{P}.
+    You can start with the following commands,
+    \begin{minted}{python}
+import gym
+env = gym.make('FrozenLake-v0').unwrapped
+print(env.P)
+    \end{minted}
+    For how to install \texttt{openAI gym}, see the link
+    \url{https://gym.openai.com/docs/}
+
+    \item Now implement the policy iteration algorithm in the following
+    function to find the optimal policy.
+    \begin{minted}{python}
+def policy_iter(P=P, theta=0.0001, gamma=1):
+    return V, policy
+    '''
+        policy: 20 by 4 numpy array where each row is a probability
+          distribution over moves for a state. If it is
+          deterministic, then the probability will be an one hot vector.
+          Initialize the policy with zeros.
+    '''
+    \end{minted}
+    Following this policy, will the robot at location 0 be able to reach the
+    exits? Have we effectively communicated to the robot what we want it to
+    achieve?
+
+    \item Implement value iteration algorithm in the following
+    function to find the optimal policy.
+    \begin{minted}{python}
+def value_iteration(P=P, theta=0.0001, gamma=0.8):
+    return V, policy
+    \end{minted}
+    Does this policy achieve the goal of finding exits with the fewest moves?
+    What is the effect of the discount factor $ \gamma $ in this episodic
+    task?
+\end{enumerate}

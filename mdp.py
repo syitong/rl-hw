@@ -71,7 +71,7 @@ def value_iter(trans_mat, V_init, theta, gamma=1):
 
 if __name__ == '__main__':
     # env = gym.make('FrozenLake-v0').unwrapped
-    env = GridworldEnv()
+    env = GridworldEnv(slip=0.2, episodic=True)
     trans_mat = env.P
     nA = env.nA
     # _, nA, trans_mat, _ = nchain(episodic=True)
@@ -81,8 +81,9 @@ if __name__ == '__main__':
         POLICY[s] = pie
     V_init = np.zeros(len(trans_mat))
 
-    V = policy_eval(trans_mat, V_init, POLICY, theta = 0.0001, gamma=0.9)
-    # V, policy = policy_iter(trans_mat, V_init, POLICY, theta = 0.0001, gamma = 0.3)
+    # V = policy_eval(trans_mat, V_init, POLICY, theta = 0.0001, gamma=0.9)
+    V, policy = policy_iter(trans_mat, V_init, POLICY, theta = 0.0001, gamma = 0.9)
     # V, policy = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.8)
+    np.set_printoptions(precision=2)
     print(V.reshape((5,-1)))
     print(np.array([np.argmax(p) for _,p in policy.items()]).reshape((5,-1)))
