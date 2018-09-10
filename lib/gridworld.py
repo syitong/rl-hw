@@ -28,7 +28,7 @@ class GridworldEnv(discrete.DiscreteEnv):
 
     metadata = {'render.modes': ['human', 'ansi']}
 
-    def __init__(self, shape=[4,5]):
+    def __init__(self, shape=[5,5], slip=0., episodic=False):
         if not isinstance(shape, (list, tuple)) or not len(shape) == 2:
             raise ValueError('shape argument must be a list/tuple of length 2')
 
@@ -43,6 +43,10 @@ class GridworldEnv(discrete.DiscreteEnv):
         P = {}
         grid = np.arange(nS).reshape(shape)
         it = np.nditer(grid, flags=['multi_index'])
+        if episodic:
+            is_done = lambda s: s == 21 or s == 13
+        else:
+            is_done = lambda s: False
 
         while not it.finished:
             s = it.iterindex
@@ -50,7 +54,6 @@ class GridworldEnv(discrete.DiscreteEnv):
 
             P[s] = {a : [] for a in range(nA)}
 
-            is_done = lambda s: s == 14 or s == 17
 
             # We're stuck in a terminal state
             if is_done(s):
@@ -60,14 +63,32 @@ class GridworldEnv(discrete.DiscreteEnv):
                 P[s][LEFT] = [(1.0, s, 0., True)]
             # Not a terminal state
             else:
-                ns_up = s if y == 0 else s - MAX_X
-                ns_right = s if x == (MAX_X - 1) else s + 1
-                ns_down = s if y == (MAX_Y - 1) else s + MAX_X
-                ns_left = s if x == 0 else s - 1
-                P[s][UP] = [(1.0, ns_up, is_done(ns_up), is_done(ns_up))]
-                P[s][RIGHT] = [(1.0, ns_right, is_done(ns_right), is_done(ns_right))]
-                P[s][DOWN] = [(1.0, ns_down, is_done(ns_down), is_done(ns_down))]
-                P[s][LEFT] = [(1.0, ns_left, is_done(ns_left), is_done(ns_left))]
+                if s == 1:
+                    ns_up = 21
+                    ns_right = 21
+                    ns_down = 21
+                    ns_left = 21
+                    p = 0
+                elif s == 3:
+                    ns_up = 13
+                    ns_right = 13
+                    ns_down = 13
+                    ns_left = 13
+                    p = 0
+                else:
+                    ns_up = s if y == 0 else s - MAX_X
+                    ns_right = s if x == (MAX_X - 1) else s + 1
+                    ns_down = s if y == (MAX_Y - 1) else s + MAX_X
+                    ns_left = s if x == 0 else s - 1
+                    p = slip
+                P[s][UP] = [(1 - p, ns_up, self._rew(x,y,UP), is_done(ns_up)),
+                    (p, s, self._rew(x,y,UP), is_done(s))]
+                P[s][RIGHT] = [(1 - p, ns_right, self._rew(x,y,RIGHT), is_done(ns_right)),
+                    (p, s, self._rew(x,y,RIGHT), is_done(s))]
+                P[s][DOWN] = [(1 - p, ns_down, self._rew(x,y,DOWN), is_done(ns_down)),
+                    (p, s, self._rew(x,y,DOWN), is_done(s))]
+                P[s][LEFT] = [(1 - p, ns_left, self._rew(x,y,LEFT), is_done(ns_left)),
+                    (p, s, self._rew(x,y,LEFT), is_done(s))]
 
             it.iternext()
 
@@ -79,6 +100,19 @@ class GridworldEnv(discrete.DiscreteEnv):
         self.P = P
 
         super(GridworldEnv, self).__init__(nS, nA, P, isd)
+
+    def _rew(self, x, y, a):
+        if (y,x) == (0,1):
+            return 10
+        elif (y,x) == (0,3):
+            return 5
+        elif ((y == 0 and a == UP)
+            or (y == self.shape[0] - 1 and a == DOWN)
+            or (x == 0 and a == LEFT)
+            or (x == self.shape[1] - 1 and a == RIGHT)):
+            return -1
+        else:
+            return 0
 
     def _render(self, mode='human', close=False):
         if close:
