@@ -71,7 +71,7 @@ def value_iter(trans_mat, V_init, theta, gamma=1):
 
 if __name__ == '__main__':
     # env = gym.make('FrozenLake-v0').unwrapped
-    env = GridworldEnv(slip=0.2, episodic=True)
+    env = GridworldEnv(slip=0.2, episodic=False)
     trans_mat = env.P
     nA = env.nA
     # _, nA, trans_mat, _ = nchain(episodic=True)
