@@ -36,7 +36,7 @@ the following rules!!
   called.
 \end{itemize}
 
-\begin{enumerate}
+\begin{enumerate}[(a)]
     \item Work out the transition probability and rewards for the MDP described
     above using the function defined as:
     \begin{minted}{python}
@@ -99,7 +99,8 @@ def policy_iter(P, theta=0.0001, gamma=0.9):
           deterministic, then the probability will be a one hot vector.
           If there is a tie between two actions, break the tie with
           equal probabilities.
-          Initialize the policy with zeros.
+          Initialize the policy with the uniformly random policy
+          described in Part (b).
     '''
     \end{minted}
     Other than the code, please put your value function with 2 decimals
@@ -138,6 +139,6 @@ def gridworld_ep(slip_prob=0.2):
     Put your value function for \texttt{gamma=0.8} with 2 decimals in your
     solution.
 
-    \item{}[7 pts] What is the critical value of \texttt{gamma} that changes the agent's
-    behavior from always achieving our intention to failure somewhere? 
+    \item{}[7 pts] What is the critical value of \texttt{gamma} that varies the behavior of
+    the agent in terms of achieving the intention? 
 \end{enumerate}
