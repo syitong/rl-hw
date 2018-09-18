@@ -140,3 +140,36 @@ if __name__ == '__main__':
     V, policy = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.8, inplace=inplace)
     print('optimal value function after value iteration')
     print(V.reshape(5,-1))
+
+    inplace = False
+
+    V_init, POLICY = reset(nA)
+    V1 = policy_eval(trans_mat, V_init, POLICY, theta = 0.0001, gamma=0.9, inplace=inplace)
+    print(np.array_equal(V,V1))
+
+    V_init, POLICY = reset(nA)
+    V1, policy1 = policy_iter(trans_mat, V_init, POLICY, theta = 0.0001, gamma = 0.9, inplace=inplace)
+    print(np.array_equal(V,V1))
+    print(np.array_equal(policy,policy1))
+
+    V_init, POLICY = reset(nA)
+    V1, policy1 = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.9, inplace=inplace)
+    print(np.array_equal(V,V1))
+    print(np.array_equal(policy,policy1))
+
+    env = GridworldEnv(slip=0.2, episodic=True)
+    trans_mat = env.P
+    V_init, POLICY = reset(nA)
+    V1, policy1 = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 1., inplace=inplace)
+    print(np.array_equal(V,V1))
+    print(np.array_equal(policy,policy1))
+
+    V_init, POLICY = reset(nA)
+    V1, policy1 = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.9, inplace=inplace)
+    print(np.array_equal(V,V1))
+    print(np.array_equal(policy,policy1))
+
+    V_init, POLICY = reset(nA)
+    V1, policy1 = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.8, inplace=inplace)
+    print(np.array_equal(V,V1))
+    print(np.array_equal(policy,policy1))
