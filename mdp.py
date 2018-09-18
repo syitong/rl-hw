@@ -113,7 +113,7 @@ if __name__ == '__main__':
     print(V.reshape(5,-1))
 
     V_init, POLICY = reset(nA)
-    V, policy = policy_iter(trans_mat, V_init, POLICY, theta = 0.0001, gamma = 0.9, inplace=False)
+    V, policy = policy_iter(trans_mat, V_init, POLICY, theta = 0.0001, gamma = 0.9, inplace=inplace)
     print('optimal value function after policy iteration')
     print(V.reshape(5,-1))
     print('optimal policy after policy iteration')
