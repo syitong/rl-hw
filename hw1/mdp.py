@@ -24,16 +24,22 @@ def _onestep_v(V, s, policy, trans_mat, gamma=1):
         q = _onestep_q(V, s, a, trans_mat, gamma)
         v += policy[s][a] * q
     delta = np.abs(v-V[s])
-    V[s] = v
-    return delta
+    return delta, v
 
-def policy_eval(trans_mat, V_init, policy, theta, gamma=1):
+def policy_eval(trans_mat, V_init, policy, theta, gamma=1, inplace=True):
     V = V_init
+    U = np.zeros(np.shape(V_init))
     while True:
         delta = 0
         for s in range(len(trans_mat)):
-            dd = _onestep_v(V, s, policy, trans_mat, gamma)
+            dd,v = _onestep_v(V, s, policy, trans_mat, gamma)
             delta = max(delta, dd)
+            if inplace:
+                V[s] = v
+            else:
+                U[s] = v
+        if not inplace:
+            V = U
         if delta < theta:
             return V
 
@@ -46,11 +52,11 @@ def policy_improve(V, s, trans_mat, gamma=1):
     aa = aa / sum(aa)
     return aa, q
 
-def policy_iter(trans_mat, V_init, policy, theta, gamma=1):
+def policy_iter(trans_mat, V_init, policy, theta, gamma=1, inplace=True):
     is_stable = False
     while not is_stable:
         is_stable = True
-        V = policy_eval(trans_mat, V_init, policy, theta, gamma)
+        V = policy_eval(trans_mat, V_init, policy, theta, gamma, inplace=inplace)
         for s in range(len(trans_mat)):
             aa, _ = policy_improve(V, s, trans_mat, gamma)
             if not np.array_equal(policy[s], aa):
@@ -58,8 +64,9 @@ def policy_iter(trans_mat, V_init, policy, theta, gamma=1):
                 is_stable = False
     return V, policy
 
-def value_iter(trans_mat, V_init, theta, gamma=1):
+def value_iter(trans_mat, V_init, theta, gamma=1, inplace=True):
     V = V_init
+    U = np.zeros(np.shape(V_init))
     next_iter = True
     policy = {}
     while next_iter:
@@ -67,7 +74,12 @@ def value_iter(trans_mat, V_init, theta, gamma=1):
         for s in range(len(trans_mat)):
             aa, q = policy_improve(V, s, trans_mat, gamma)
             delta = max(delta, np.abs(V[s] - max(q)))
-            V[s] = max(q)
+            if inplace:
+                V[s] = max(q)
+            else:
+                U[s] = max(q)
+        if not inplace:
+            V = U
         if delta < theta:
             next_iter = False
     for s in range(len(trans_mat)):
@@ -93,21 +105,22 @@ if __name__ == '__main__':
     trans_mat = env.P
     nA = env.nA
     np.set_printoptions(precision=2)
+    inplace = True
 
     V_init, POLICY = reset(nA)
-    V = policy_eval(trans_mat, V_init, POLICY, theta = 0.0001, gamma=0.9)
+    V = policy_eval(trans_mat, V_init, POLICY, theta = 0.0001, gamma=0.9, inplace=inplace)
     print('uniformly random policy evaluation:')
     print(V.reshape(5,-1))
 
     V_init, POLICY = reset(nA)
-    V, policy = policy_iter(trans_mat, V_init, POLICY, theta = 0.0001, gamma = 0.9)
+    V, policy = policy_iter(trans_mat, V_init, POLICY, theta = 0.0001, gamma = 0.9, inplace=inplace)
     print('optimal value function after policy iteration')
     print(V.reshape(5,-1))
     print('optimal policy after policy iteration')
     print_pol(policy,5,4)
 
     V_init, POLICY = reset(nA)
-    V, policy = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.9)
+    V, policy = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.9, inplace=inplace)
     print('optimal value function after value iteration')
     print(V.reshape(5,-1))
     print('optimal policy after value iteration')
@@ -116,14 +129,47 @@ if __name__ == '__main__':
     env = GridworldEnv(slip=0.2, episodic=True)
     trans_mat = env.P
     V_init, POLICY = reset(nA)
-    V, policy = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 1.)
+    V, policy = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 1., inplace=inplace)
     print('optimal value function after value iteration')
     print(V.reshape(5,-1))
     V_init, POLICY = reset(nA)
-    V, policy = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.9)
+    V, policy = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.9, inplace=inplace)
     print('optimal value function after value iteration')
     print(V.reshape(5,-1))
     V_init, POLICY = reset(nA)
-    V, policy = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.8)
+    V, policy = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.8, inplace=inplace)
     print('optimal value function after value iteration')
     print(V.reshape(5,-1))
+
+    inplace = False
+
+    V_init, POLICY = reset(nA)
+    V1 = policy_eval(trans_mat, V_init, POLICY, theta = 0.0001, gamma=0.9, inplace=inplace)
+    print(np.array_equal(V,V1))
+
+    V_init, POLICY = reset(nA)
+    V1, policy1 = policy_iter(trans_mat, V_init, POLICY, theta = 0.0001, gamma = 0.9, inplace=inplace)
+    print(np.array_equal(V,V1))
+    print(np.array_equal(policy,policy1))
+
+    V_init, POLICY = reset(nA)
+    V1, policy1 = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.9, inplace=inplace)
+    print(np.array_equal(V,V1))
+    print(np.array_equal(policy,policy1))
+
+    env = GridworldEnv(slip=0.2, episodic=True)
+    trans_mat = env.P
+    V_init, POLICY = reset(nA)
+    V1, policy1 = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 1., inplace=inplace)
+    print(np.array_equal(V,V1))
+    print(np.array_equal(policy,policy1))
+
+    V_init, POLICY = reset(nA)
+    V1, policy1 = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.9, inplace=inplace)
+    print(np.array_equal(V,V1))
+    print(np.array_equal(policy,policy1))
+
+    V_init, POLICY = reset(nA)
+    V1, policy1 = value_iter(trans_mat, V_init, theta = 0.0001, gamma = 0.8, inplace=inplace)
+    print(np.array_equal(V,V1))
+    print(np.array_equal(policy,policy1))
