@@ -125,11 +125,14 @@ def testshow(policy,env=env):
     print(cum_rew)
 
 if __name__ == '__main__':
-    baseline = np.arange(7) / 6
-    baseline[-1] = 0
-    V_init, policy = reset(nA,nS)
-    V_init[1:6] = 0.5
-    plot_td0(V_init=V_init,policy=policy,baseline=baseline,gamma=1,alpha=0.15,runs=100,episodes=100)
+    # Example 6.2 Random Walk
+    # baseline = np.arange(7) / 6
+    # baseline[-1] = 0
+    # V_init, policy = reset(nA,nS)
+    # V_init[1:6] = 0.5
+    # plot_td0(V_init=V_init,policy=policy,baseline=baseline,gamma=1,alpha=0.15,runs=100,episodes=100)
+
+    # Homework 2
     # trans_mat = {}
     # for s,pi in env.P.items():
     #     trans_mat[s] = {}
