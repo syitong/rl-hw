@@ -1,0 +1,83 @@
+%!TEX root = ./homework2.tex
+\noindent{Question 5} [35 or 40? pts] (Variant of taxi-v2)
+In this problem, we will use Taxi-v3 openai environment, which is a variant
+of Taxi-v2 adapted for our purpose. It describes a scenario where the taxi,
+colored by yellow, needs to find the passenger at one of the corners of
+the 5x5 grid, colored by blue, and take the passenger to the destination,
+colored by magenta.
+
+To use Taxi-v3, first you need to install openai gym module. And then
+download \texttt{mytaxi.zip} and unzip it under your working directory.
+The following code will load an \texttt{Taxi-v3} instance for you.
+\begin{minted}{python}
+import gym
+import mytaxi
+
+env = gym.make('Taxi-v3').unwrapped # expose all parameters to user
+\end{minted}
+For detailed usage of openai gym, please read their online document.
+For our purpose, \texttt{env.nS,env.nA,env.P} tell us number of states,
+number of actions and the full transition and reward information. You will
+see that \texttt{env.P} has the same structure with the one you write for
+the MDP problem. Several useful methods you will need:
+\begin{description}
+  \item[\texttt{env.reset()}] Reset the environment to a random initial
+  state.
+  \item[\texttt{env.step(action)}] Take an action and receive the reward
+  and new state.
+  \item[\texttt{env.render()}] Print out the illustration of current state.
+\end{description}
+Using this environment, you will be asked to explore several policy prediction
+and optimal control algorithms.
+
+\begin{enumerate}[(a)]
+\item The file \texttt{policy} gives you a policy stored as a dictionary
+where keys are states and values are corresponding probability distribution
+over actions. Use policy evaluation algorithm you wrote for the MDP problem in
+Homework 1 to evaluate the value function of the give policy.
+Set the stopping criteria \texttt{theta=0.01} and the discount factor
+\texttt{gamma=1}. This result will be used as the \emph{true value function} for
+the given policy.
+\item MC estimation of state values
+\item on-policy first visit MC control for $\epsilon$-soft policies
+\item Implement the TD(0) algorithm on Page 120 of the textbook. Use it to
+evaluate the value function of the given policy.
+\begin{minted}{python}
+def td0(env,policy=give_policy,baseline=true_value_fn,
+    gamma=1,alpha=0.1,episodes=1000):
+    np.random.seed(3)
+    env.seed(5)
+    ...
+    return rms, V
+    '''
+    env: The Taxi-v3 environment.
+    baseline: Default to the true value function you obtain from Part (a).
+    rms: Root mean square error w.r.t. baseline at the end of each episode.
+    So it is an array of length equal to number of episodes.
+    root mean square between two vectors a,b is defined by
+    sqrt(sum((a-b)**2)/len(a)).
+    V: The final value function evaluated by the algorithm. Initialize it
+    to all 0 zeros.
+    '''
+\end{minted}
+Plot the two figures in your homework. One is the plot of rms vs episodes
+and the other one is the scatter plot of true value functions and the one
+obtained from TD(0).
+\item Implement the Q-learning algorithm on Page 131 of the textbook. Use it
+to find the optimal policy for the Taxi-v3.
+\begin{minted}{python}
+def qlearn(env,gamma=1,alpha=0.9,epsilon=0.1,runs=20,episodes=500):
+    np.random.seed(3)
+    env.seed(5)
+    ...
+    return avgrew
+    '''
+    runs: Number of repetitions of the learning process.
+    avgrew: Sum of rewards during one episode, averaged over 20 runs.
+    Initialize the Q table to all 0 zeros for each run.
+    '''
+\end{minted}
+Plot the avgrew vs episodes in your homework.
+\end{enumerate}
+
+\textcolor{blue}{Will include details on Sunday}
