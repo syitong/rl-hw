@@ -2,27 +2,22 @@ import numpy as np
 from numpy import array
 import matplotlib as mpl
 import copy
-mpl.use('Agg')
+# mpl.use('Agg')
 import matplotlib.pyplot as plt
+plt.style.use('ggplot')
 import gym
 from mdp import reset,policy_eval
 from randomwalk import RandomWalk
-import RidiculusTaxi
-
-env = gym.make('Taxi-v3').unwrapped
-nS = env.observation_space.n
-nA = env.action_space.n
-# env = RandomWalk()
-# nS = 7
-# nA = 2
-np.random.seed(3)
-env.seed(5)
+import mytaxi
 
 def rms(a,b):
     return np.sqrt(np.mean((a-b)**2))
 
-def td0(V_init,policy,baseline,nS=nS,gamma=1,alpha=0.9,episodes=1000):
+def td0(env,V_init,policy,baseline,gamma=1,alpha=0.9,episodes=1000):
+    np.random.seed(3)
+    env.seed(5)
     V = V_init.copy()
+    nS = env.nS
     RMS = []
     for idx in range(episodes):
         s = env.reset()
@@ -39,12 +34,12 @@ def td0(V_init,policy,baseline,nS=nS,gamma=1,alpha=0.9,episodes=1000):
         RMS.append(RMS_ep)
     return np.array(RMS), V
 
-def plot_td0(baseline,runs,V_init,policy,
-        nS=nS,gamma=1,alpha=0.9,episodes=1000):
+def plot_td0(env,baseline,runs,V_init,policy,
+        gamma=1,alpha=0.9,episodes=1000):
     RMS = np.zeros(episodes)
     V = np.zeros(nS)
     for idx in range(runs):
-        RMS_run,V_run = td0(V_init,policy,baseline,nS=nS,
+        RMS_run,V_run = td0(env,V_init,policy,baseline,
             gamma=1,alpha=alpha,episodes=episodes)
         RMS += RMS_run
         V += V_run
@@ -91,10 +86,17 @@ def policy_gen(Q,ep):
     return policy
 
 def action(policy,s):
-    p = policy[s] / sum(policy[s])
+    if sum(policy[s]) != 1:
+        p = policy[s] / sum(policy[s])
+    else:
+        p = policy[s]
     return np.random.choice(nA,p=p)
 
-def qlearn(nS=nS,nA=nA,gamma=1,alpha=0.9,ep=0.05,runs=1,episodes=1000):
+def qlearn(env,gamma=1,alpha=0.9,ep=0.05,runs=1,episodes=1000):
+    np.random.seed(3)
+    env.seed(5)
+    nS = env.nS
+    nA = env.nA
     rew_alloc = []
     for run in range(runs):
         Q = np.zeros((nS,nA))
@@ -117,7 +119,13 @@ def qlearn(nS=nS,nA=nA,gamma=1,alpha=0.9,ep=0.05,runs=1,episodes=1000):
     rew_list = np.mean(np.array(rew_alloc),axis=0)
     return Q, rew_list
 
-def testshow(policy,env=env):
+def QtoV(Q):
+    V = np.zeros(len(Q))
+    for idx,row in enumerate(Q):
+        V[idx] = np.max(row)
+    return V
+
+def testshow(env,policy):
     s = env.reset()
     done = False
     cum_rew = 0
@@ -131,57 +139,55 @@ def testshow(policy,env=env):
 
 if __name__ == '__main__':
     # Example 6.2 Random Walk
+    # env = RandomWalk()
     # baseline = np.arange(7) / 6
     # baseline[-1] = 0
     # V_init, policy = reset(nA,nS)
     # V_init[1:6] = 0.5
-    # plot_td0(V_init=V_init,policy=policy,baseline=baseline,gamma=1,alpha=0.15,runs=100,episodes=100)
+    # plot_td0(env=env,V_init=V_init,policy=policy,
+    #     baseline=baseline,gamma=1,alpha=0.15,runs=100,episodes=100)
 
     # Homework 2
-    # trans_mat = {}
-    # for s,pi in env.P.items():
-    #     trans_mat[s] = {}
-    #     for a,p in pi.items():
-    #         trans_mat[s][a] = []
-    #         for row in p:
-    #             if row[3] == True:
-    #                 lrow = list(row)
-    #                 lrow[1] = nS
-    #                 row = tuple(lrow)
-    #             trans_mat[s][a].append(row)
-
-    # trans_mat[nS] = {0: [(1.0,nS,0,True)]}
-    # trans_mat = env.P
-
-    # V_init,policy = reset(nA,nS)
-    # Q, rew_list = qlearn(gamma=1,alpha=0.9,ep=0.1,episodes=1000)
-    # policy = policy_gen(Q,0.1)
-    # with open('qpolicy','w') as fp:
-    #     fp.write(str(policy))
-    # params = {
-    #     'trans_mat': trans_mat,
-    #     'V_init': V_init,
-    #     'policy': policy,
-    #     'theta': 0.01,
-    #     'inplace': False,
-    #     'gamma':1
-    #     }
-    # baseline = policy_eval(**params)
-    # np.save('qbase',baseline)
-    # baseline = np.load('qbase.npy')
-    # with open('qpolicy','r') as fp:
-    #     policy = eval(fp.read())
-    # V_init,_ = reset(nA,nS)
-    # plot_td0(V_init=V_init,policy=policy,baseline=baseline,gamma=1,alpha=0.1,runs=1,episodes=50000)
-    Q, rew_list = qlearn(gamma=1,alpha=0.9,ep=0.1,runs=20,episodes=500)
-    np.save('Qtable',Q)
+    env = gym.make('Taxi-v3').unwrapped
+    nA = env.nA
+    nS = env.nS
+    V_init,policy = reset(nA,nS)
+    Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,episodes=10000)
+    policy = policy_gen(Q,0.1)
+    with open('policy','w') as fp:
+        fp.write(str(policy))
+    params = {
+        'trans_mat': env.P,
+        'V_init': V_init,
+        'policy': policy,
+        'theta': 0.01,
+        'inplace': False,
+        'gamma':1
+        }
+    baseline = policy_eval(**params)
+    np.save('baseline',baseline)
+    baseline = np.load('baseline.npy')
+    with open('policy','r') as fp:
+        policy = eval(fp.read())
+    V_init,_ = reset(nA,nS)
+    plot_td0(env=env,V_init=V_init,policy=policy,
+        baseline=baseline,gamma=1,alpha=0.1,runs=1,episodes=50000)
+    Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,runs=20,episodes=500)
     np.save('avg_rew',rew_list)
     fig = plt.figure()
     plt.plot(rew_list)
     plt.savefig('qlearn-interim.eps')
     plt.close(fig)
-    # fig = plt.figure()
-    # plt.plot(rew_list[-100:])
-    # plt.savefig('qlearn-asym.eps')
-    # plt.close(fig)
+    Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,runs=1,episodes=100000)
+    np.save('Qtable',Q)
+    Vq = QtoV(Q)
+    fig = plt.figure()
+    plt.plot(baseline,marker='x',linestyle='None',label='baseline')
+    plt.plot(Vq,marker='o',linestyle='None',label='Vq')
+    plt.savefig('optv.eps')
+    plt.close(fig)
+    fig = plt.figure()
+    plt.plot(rew_list[-100:])
+    plt.savefig('qlearn-asym.eps')
+    plt.close(fig)
     # testshow(policy,env)
