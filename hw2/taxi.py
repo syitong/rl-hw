@@ -16,7 +16,7 @@ nA = env.action_space.n
 # nS = 7
 # nA = 2
 np.random.seed(3)
-# env.seed(5)
+env.seed(5)
 
 def rms(a,b):
     return np.sqrt(np.mean((a-b)**2))
@@ -31,10 +31,7 @@ def td0(V_init,policy,baseline,nS=nS,gamma=1,alpha=0.9,episodes=1000):
         while not done:
             a = action(policy,s)
             ss, r, done, _ = env.step(a)
-            if done:
-                V[s] = V[s] + alpha * (r - V[s])
-            else:
-                V[s] = V[s] + alpha * (r + gamma * V[ss] - V[s])
+            V[s] = V[s] + alpha * (r + gamma * V[ss] - V[s])
             s = ss
             counter += 1
         print(counter,idx)
@@ -61,7 +58,7 @@ def plot_td0(baseline,runs,V_init,policy,
     fig = plt.figure()
     plt.plot(V,marker='o',linestyle='None',label='td')
     plt.plot(baseline,marker='x',linestyle='None',label='base')
-    plt.legend(loc=1)
+    plt.legend(loc=3)
     plt.savefig('td0-qplot.eps')
     plt.close(fig)
 
@@ -97,26 +94,27 @@ def action(policy,s):
     p = policy[s] / sum(policy[s])
     return np.random.choice(nA,p=p)
 
-def qlearn(nS=nS,nA=nA,gamma=1,alpha=0.9,ep=0.05,episodes=1000):
-    Q = np.zeros((nS,nA))
-    rew_list = np.zeros(episodes)
-    for idx in range(episodes):
-        s = env.reset()
-        done = False
-        counter = 0
-        cum_rew = 0
-        while not done:
-            a = ep_greedy(Q,s,ep)
-            ss, r, done, _ = env.step(a)
-            if done:
-                Q[s,a] = Q[s,a] + alpha * (r - Q[s,a])
-            else:
+def qlearn(nS=nS,nA=nA,gamma=1,alpha=0.9,ep=0.05,runs=1,episodes=1000):
+    rew_alloc = []
+    for run in range(runs):
+        Q = np.zeros((nS,nA))
+        rew_list = np.zeros(episodes)
+        for idx in range(episodes):
+            s = env.reset()
+            done = False
+            counter = 0
+            cum_rew = 0
+            while not done:
+                a = ep_greedy(Q,s,ep)
+                ss, r, done, _ = env.step(a)
                 Q[s,a] = Q[s,a] + alpha * (r + gamma * np.max(Q[ss]) - Q[s,a])
-            s = ss
-            cum_rew += r
-            counter += 1
-        print(counter,idx)
-        rew_list[idx] = cum_rew
+                s = ss
+                cum_rew += r
+                counter += 1
+            print(counter,idx)
+            rew_list[idx] = cum_rew
+        rew_alloc.append(rew_list)
+    rew_list = np.mean(np.array(rew_alloc),axis=0)
     return Q, rew_list
 
 def testshow(policy,env=env):
@@ -153,29 +151,37 @@ if __name__ == '__main__':
     #             trans_mat[s][a].append(row)
 
     # trans_mat[nS] = {0: [(1.0,nS,0,True)]}
-    trans_mat = env.P
+    # trans_mat = env.P
 
-    V_init,policy = reset(nA,nS+1)
-    Q, rew_list = qlearn(gamma=1,alpha=0.9,ep=0.1,episodes=100000)
+    # V_init,policy = reset(nA,nS)
+    # Q, rew_list = qlearn(gamma=1,alpha=0.9,ep=0.1,episodes=1000)
+    # policy = policy_gen(Q,0.1)
+    # with open('qpolicy','w') as fp:
+    #     fp.write(str(policy))
+    # params = {
+    #     'trans_mat': trans_mat,
+    #     'V_init': V_init,
+    #     'policy': policy,
+    #     'theta': 0.01,
+    #     'inplace': False,
+    #     'gamma':1
+    #     }
+    # baseline = policy_eval(**params)
+    # np.save('qbase',baseline)
+    # baseline = np.load('qbase.npy')
+    # with open('qpolicy','r') as fp:
+    #     policy = eval(fp.read())
+    # V_init,_ = reset(nA,nS)
+    # plot_td0(V_init=V_init,policy=policy,baseline=baseline,gamma=1,alpha=0.1,runs=1,episodes=50000)
+    Q, rew_list = qlearn(gamma=1,alpha=0.9,ep=0.1,runs=20,episodes=500)
     np.save('Qtable',Q)
-    policy = policy_gen(Q,0.1)
-    with open('qpolicy','w') as fp:
-        fp.write(str(policy))
-    params = {
-        'trans_mat': trans_mat,
-        'V_init': V_init,
-        'policy': policy,
-        'theta': 0.01,
-        'inplace': False,
-        'gamma':1
-        }
-    baseline = policy_eval(**params)
-    np.save('qbase',baseline)
-    baseline = np.load('qbase.npy')
-    with open('qpolicy','r') as fp:
-        policy = eval(fp.read())
-    V_init,_ = reset(nA,nS)
-    plot_td0(V_init=V_init,policy=policy,baseline=baseline[:-1],gamma=1,alpha=0.1,runs=1,episodes=100000)
+    np.save('avg_rew',rew_list)
+    fig = plt.figure()
     plt.plot(rew_list)
-    # plt.savefig('qlearn.eps')
+    plt.savefig('qlearn-interim.eps')
+    plt.close(fig)
+    # fig = plt.figure()
+    # plt.plot(rew_list[-100:])
+    # plt.savefig('qlearn-asym.eps')
+    # plt.close(fig)
     # testshow(policy,env)
