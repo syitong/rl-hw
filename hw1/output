@@ -15,11 +15,11 @@ optimal policy after policy iteration
 
   e     n     nw    w     w   
 
-  e     n     nw    w     w   
+  e     n     nw    nw    nw  
 
-  e     n     nw    w     w   
+  e     n     nw    nw    nw  
 
-  e     n     nw    w     w   
+  e     n     nw    nw    nw  
 
 optimal value function after value iteration
 [[18.88 21.5  18.88 16.5  14.49]
