@@ -75,15 +75,14 @@ def ep_greedy(Q,s,ep):
         return greedy(Q,s)
 
 def policy_gen(Q,ep):
-    policy = {}
+    policy = []
     for s in range(nS):
         row = np.zeros(nA)
         actions = _greedy(Q,s)
         row[actions] = (1-ep) / len(actions)
         row = row + np.ones(nA) * ep / nA
-        policy[s] = row
-    policy[nS] = np.ones(nA) / nA
-    return policy
+        policy.append(row)
+    return np.array(policy)
 
 def action(policy,s):
     if sum(policy[s]) != 1:
@@ -152,7 +151,7 @@ if __name__ == '__main__':
     nA = env.nA
     nS = env.nS
     V_init,policy = reset(nA,nS)
-    Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,episodes=10000)
+    Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,episodes=1000)
     policy = policy_gen(Q,0.1)
     with open('policy','w') as fp:
         fp.write(str(policy))
