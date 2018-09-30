@@ -119,7 +119,7 @@ def qlearn(env,gamma=1,alpha=0.9,ep=0.05,runs=1,episodes=1000):
     rew_list = np.mean(np.array(rew_alloc),axis=0)
     return Q, rew_list
 
-def mc_control(env,gamma=1,ep=0.1,runs=1,episodes=1000):
+def mc_control(env,gamma=1,ep=0.1,runs=1,episodes=1000,T=0):
     np.random.seed(3)
     env.seed(5)
     nA = env.nA
@@ -138,13 +138,16 @@ def mc_control(env,gamma=1,ep=0.1,runs=1,episodes=1000):
             G = np.zeros((nS,nA))
             qset = set()
             while not done:
-                # if counter > 500:
-                #     break
+                if T and counter > T:
+                    break
                 a = ep_greedy(Q1,s,ep)
                 if (s,a) not in qset:
                     G[s,a] = 0
                     qset.add((s,a))
-                else:
+                # if do not terminate immature episode, we consider
+                # immediate reward in Q table to alter the agent's
+                # bad behaviour.
+                elif not T:
                     Q1[s,a] = (C[s,a] * Q[s,a] + G[s,a]) / (C[s,a]+1)
                 ss, r, done, _ = env.step(a)
                 s = ss
