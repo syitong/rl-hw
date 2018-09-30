@@ -1,26 +1,30 @@
 class RandomWalk:
     def __init__(self):
+        # start from the middle node by default,
+        # can be set by the algorithm if exploration start is needed.
         self.initial = 3
-        self.reward = 1
+        self._reward = 1
+        self._current = None
+        self._done = False
 
     def reset(self):
-        self.current = self.initial
-        self.done = False
-        return self.current
+        self._current = self.initial
+        self._done = False
+        return self._current
 
     def step(self,action):
-        if self.current == 0 or self.current == 6:
-            self.done = True
-            return self.current, 0, self.done, None
+        if self._current == 0 or self._current == 6:
+            self._done = True
+            return self._current, 0, self._done, None
         if action == 0:
-            self.current -= 1
+            self._current -= 1
         else:
-            self.current += 1
-        if self.current == 0:
-            self.done = True
-            return self.current, 0, self.done, None
-        elif self.current == 6:
-            self.done = True
-            return self.current, self.reward, self.done, None
+            self._current += 1
+        if self._current == 0:
+            self._done = True
+            return self._current, 0, self._done, None
+        elif self._current == 6:
+            self._done = True
+            return self._current, self._reward, self._done, None
         else:
-            return self.current, 0, self.done, None
+            return self._current, 0, self._done, None
