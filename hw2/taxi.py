@@ -2,7 +2,7 @@ import numpy as np
 from numpy import array
 import matplotlib as mpl
 import copy, sys
-# mpl.use('Agg')
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 import gym
@@ -13,48 +13,42 @@ import mytaxi
 def rms(a,b):
     return np.sqrt(np.mean((a-b)**2))
 
-def td0(env,V_init,policy,baseline,gamma=1,alpha=0.9,episodes=1000):
-    np.random.seed(3)
-    env.seed(5)
-    V = V_init.copy()
+def td0(env,V_init,policy,baseline,gamma=1,alpha=0.9,episodes=1000,runs=1):
     nS = env.nS
-    RMS = []
-    for idx in range(episodes):
-        s = env.reset()
-        done = False
-        counter = 0
-        while not done:
-            a = action(policy,s)
-            ss, r, done, _ = env.step(a)
-            V[s] = V[s] + alpha * (r + gamma * V[ss] - V[s])
-            s = ss
-            counter += 1
-        print(counter,idx)
-        RMS_ep = rms(baseline,V)
-        RMS.append(RMS_ep)
-    return np.array(RMS), V
+    np.random.seed(4)
+    env.seed(5)
+    RMS = np.zeros((runs,episodes))
+    for run in range(runs):
+        V = V_init.copy()
+        for idx in range(episodes):
+            s = env.reset()
+            done = False
+            counter = 0
+            while not done:
+                a = action(policy,s)
+                ss, r, done, _ = env.step(a)
+                V[s] = V[s] + alpha * (r + gamma * V[ss] - V[s])
+                s = ss
+                counter += 1
+            print(counter,idx)
+            RMS_ep = rms(baseline,V)
+            RMS[run,idx] = RMS_ep
+    RMS = np.mean(RMS,axis=0)
+    return RMS, V
 
-def plot_td0(env,baseline,runs,V_init,policy,
-        gamma=1,alpha=0.9,episodes=1000):
-    RMS = np.zeros(episodes)
-    V = np.zeros(nS)
-    for idx in range(runs):
-        RMS_run,V_run = td0(env,V_init,policy,baseline,
-            gamma=1,alpha=alpha,episodes=episodes)
-        RMS += RMS_run
-        V += V_run
-        print('run ',idx)
-    RMS /= runs
-    V /= runs
+def plot_rms(rms_dict):
     fig = plt.figure()
-    plt.plot(RMS)
-    plt.savefig('td0-error.eps')
+    for key,val in rms_dict.items():
+        plt.plot(val,label=key)
+    plt.savefig('rms-error.eps')
     plt.close(fig)
+
+def plot_value(baseline,V,label):
     fig = plt.figure()
-    plt.plot(V,marker='o',linestyle='None',label='td')
+    plt.plot(V,marker='o',linestyle='None',label=label)
     plt.plot(baseline,marker='x',linestyle='None',label='base')
-    plt.legend(loc=3)
-    plt.savefig('td0-qplot.eps')
+    plt.legend()
+    plt.savefig('value-plot.eps')
     plt.close(fig)
 
 def _greedy(Q,s):
@@ -186,13 +180,18 @@ def testshow(env,policy):
 
 if __name__ == '__main__':
     # Example 6.2 Random Walk
-    # env = RandomWalk()
-    # baseline = np.arange(7) / 6
-    # baseline[-1] = 0
-    # V_init, policy = reset(nA,nS)
-    # V_init[1:6] = 0.5
-    # plot_td0(env=env,V_init=V_init,policy=policy,
-    #     baseline=baseline,gamma=1,alpha=0.15,runs=100,episodes=100)
+    env = RandomWalk()
+    nA = env.nA
+    nS = env.nS
+    baseline = np.arange(7) / 6
+    baseline[-1] = 0
+    V_init, policy = reset(nA,nS)
+    V_init[1:6] = 0.5
+    rms,V = td0(env=env,V_init=V_init,policy=policy,
+        baseline=baseline,gamma=1,alpha=0.15,episodes=100,runs=100)
+    rms_dict = {'td0':rms}
+    plot_rms(rms_dict)
+    plot_value(baseline,V,'td0')
 
     # Homework 2
     # env = gym.make('Taxi-v3').unwrapped
@@ -240,13 +239,13 @@ if __name__ == '__main__':
     # testshow(policy,env)
 
     # mc control
-    env = gym.make('Taxi-v3').unwrapped
-    nA = env.nA
-    nS = env.nS
-    Q, rew_list = mc_control(env=env,gamma=1,
-        ep=0.1,runs=10,episodes=1000)
-    np.save('rew_list',rew_list)
-    fig = plt.figure()
-    plt.plot([rew for idx,rew in enumerate(rew_list) if idx % 50 == 0])
-    plt.savefig('mc_control.eps')
-    plt.close(fig)
+    # env = gym.make('Taxi-v3').unwrapped
+    # nA = env.nA
+    # nS = env.nS
+    # Q, rew_list = mc_control(env=env,gamma=1,
+    #     ep=0.1,runs=10,episodes=1000)
+    # np.save('rew_list',rew_list)
+    # fig = plt.figure()
+    # plt.plot([rew for idx,rew in enumerate(rew_list) if idx % 50 == 0])
+    # plt.savefig('mc_control.eps')
+    # plt.close(fig)

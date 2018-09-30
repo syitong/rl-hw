@@ -6,6 +6,11 @@ class RandomWalk:
         self._reward = 1
         self._current = None
         self._done = False
+        self.nA = 2
+        self.nS = 7
+
+    def seed(self,seed):
+        pass
 
     def reset(self):
         self._current = self.initial
