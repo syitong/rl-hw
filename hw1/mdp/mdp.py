@@ -1,7 +1,6 @@
 import numpy as np
 import gym
 from lib.gridworld import GridworldEnv
-from lib.nchain import nchain
 
 def reset(nA):
     POLICY = {}
