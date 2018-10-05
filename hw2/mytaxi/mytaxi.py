@@ -128,7 +128,7 @@ class TaxiEnv(discrete.DiscreteEnv):
         out.append(i % 5)
         i = i // 5
         out.append(i)
-        assert 0 <= i < 5
+        assert 0 <= i <= 5
         return reversed(out)
 
     def render(self, mode='human'):

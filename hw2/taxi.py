@@ -176,27 +176,28 @@ def testshow(env,policy):
         ss, r, done, _ = env.step(a)
         s = ss
         cum_rew += r
+    env.render()
     print(cum_rew)
 
 if __name__ == '__main__':
     # Example 6.2 Random Walk
-    env = RandomWalk()
-    nA = env.nA
-    nS = env.nS
-    baseline = np.arange(7) / 6
-    baseline[-1] = 0
-    V_init, policy = reset(nA,nS)
-    V_init[1:6] = 0.5
-    rms,V = td0(env=env,V_init=V_init,policy=policy,
-        baseline=baseline,gamma=1,alpha=0.15,episodes=100,runs=100)
-    rms_dict = {'td0':rms}
-    plot_rms(rms_dict)
-    plot_value(baseline,V,'td0')
-
-    # Homework 2
-    # env = gym.make('Taxi-v3').unwrapped
+    # env = RandomWalk()
     # nA = env.nA
     # nS = env.nS
+    # baseline = np.arange(7) / 6
+    # baseline[-1] = 0
+    # V_init, policy = reset(nA,nS)
+    # V_init[1:6] = 0.5
+    # rms,V = td0(env=env,V_init=V_init,policy=policy,
+    #     baseline=baseline,gamma=1,alpha=0.15,episodes=100,runs=100)
+    # rms_dict = {'td0':rms}
+    # plot_rms(rms_dict)
+    # plot_value(baseline,V,'td0')
+
+    # Homework 2
+    env = gym.make('Taxi-v3').unwrapped
+    nA = env.nA
+    nS = env.nS
     # V_init,policy = reset(nA,nS)
     # Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,episodes=10000)
     # policy = policy_gen(Q,0.1)
@@ -213,8 +214,7 @@ if __name__ == '__main__':
     # baseline = policy_eval(**params)
     # np.save('baseline',baseline)
     # baseline = np.load('baseline.npy')
-    # with open('policy','r') as fp:
-    #     policy = eval(fp.read())
+    policy = np.load('policy.npy')
     # V_init,_ = reset(nA,nS)
     # plot_td0(env=env,V_init=V_init,policy=policy,
     #     baseline=baseline,gamma=1,alpha=0.1,runs=1,episodes=50000)
@@ -236,7 +236,7 @@ if __name__ == '__main__':
     # plt.plot(rew_list[-100:])
     # plt.savefig('qlearn-asym.eps')
     # plt.close(fig)
-    # testshow(policy,env)
+    testshow(env,policy)
 
     # mc control
     # env = gym.make('Taxi-v3').unwrapped
