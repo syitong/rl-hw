@@ -105,8 +105,8 @@ def qlearn(env,gamma=1,alpha=0.9,ep=0.05,runs=1,episodes=1000):
                 ss, r, done, _ = env.step(a)
                 Q[s,a] = Q[s,a] + alpha * (r + gamma * np.max(Q[ss]) - Q[s,a])
                 s = ss
-                cum_rew = cum_rew * gamma + r
-                counter += 1
+                cum_rew +=  gamma**counter * r
+                counter += 1.
             print(counter,idx)
             rew_list[idx] = cum_rew
         rew_alloc.append(rew_list)
