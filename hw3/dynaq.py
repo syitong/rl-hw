@@ -9,6 +9,7 @@ import gym
 from mdp import reset,policy_eval
 from randomwalk import RandomWalk
 import mytaxi
+from maze import Maze
 
 def _greedy(Q,s):
     qmax = np.max(Q[s])
@@ -51,15 +52,15 @@ def model(P,s,a):
         keys.append(key)
     return np.random.choice(keys,p=p)
 
-def dynaq(env,n=10,gamma=1,alpha=0.9,ep=0.05,episodes=1000):
+def dynaq(env,n=10,gamma=1,alpha=1.,ep=0.1,max_steps=100):
     nS = env.nS
     nA = env.nA
     rew_alloc = []
     P = {} # {(s,a):(tot_num_visit,{ss:num_visit},exp_rew)}
     Q = np.zeros((nS,nA))
     tot_steps = 0
-    rew_list = np.zeros(episodes)
-    for idx in range(episodes):
+    rew_list = np.zeros(max_steps)
+    while tot_steps < max_steps:
         s = env.reset()
         done = False
         counter = 0
@@ -84,8 +85,40 @@ def dynaq(env,n=10,gamma=1,alpha=0.9,ep=0.05,episodes=1000):
                 ss = model(P,s,a)
                 r = P[(s,a)][2]
                 _onestep_q(s,a,ss,r,Q)
-        print(counter,idx)
-        rew_list[idx] = cum_rew
-    rew_alloc.append(rew_list)
-    rew_list = np.mean(np.array(rew_alloc),axis=0)
+            print('\rtotal steps {}      '.format(tot_steps))
+            sys.stdout.flush()
+            rew_list[tot_steps] = cum_rew
     return Q, rew_list, tot_steps
+
+if __name__ == '__main__':
+    blocking_maze = Maze()
+    blocking_maze.START_STATE = [5, 3]
+    blocking_maze.GOAL_STATES = [[0, 8]]
+    old_obstacles = [[3, i] for i in range(0, 8)]
+
+    # new obstalces will block the optimal path
+    new_obstacles = [[3, i] for i in range(1, 9)]
+
+    # obstacles will change after 1000 steps
+    # the exact step for changing will be different
+    # However given that 1000 steps is long enough for both algorithms to converge,
+    # the difference is guaranteed to be very small
+    obstacle_switch_time = 1000
+    max_step = 300
+    runs = 1
+
+    avg_rew = []
+    for run in range(runs):
+        Q, rew_list, tot_steps = dynaq(blocking_maze,gamma=0.95)
+        avg_rew.append(rew_list)
+    avg_rew = np.mean(np.array(cum_rew),axis=0)
+    cum_rew_list = []
+    cum_rew = 0
+    for rew in avg_rew:
+        cum_rew += rew
+        cum_rew_list.append(cum_rew)
+    fig = plt.figure()
+    plt.plot(tot_steps,cum_rew_list)
+    plt.title("Cumulative Reward")
+    plt.savefig(fig)
+    plt.close(fig)
