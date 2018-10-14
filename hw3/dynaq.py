@@ -51,6 +51,11 @@ class plan_model(dict):
         action = self.setdefault(s,{})
         entry = action.setdefault(a,[0,{},0])
         entry[0] += 1
+        # this is for deterministic environment, for stochastic case, comment
+        # out the if clause 
+        if ss not in entry[1].keys():
+            entry[0] = 1
+            entry[1] = {}
         entry[1][ss] = entry[1].setdefault(ss,0) + 1
         entry[2] = (entry[2] * (entry[0] - 1) + r) / entry[0]
     
@@ -72,9 +77,10 @@ def dynaq(env,n=10,gamma=1.,alpha=1.,ep=0.1,max_steps=100,switch_time=-1):
     Q = np.zeros((nS,nA))
     tot_steps = 0
     rew_list = np.zeros(max_steps)
+    env.obstacles = env.old_obstacles
     while tot_steps < max_steps:
-        # if tot_steps > switch_time > 0:
-        #    env.obstacles = env.new_obstacles
+        if tot_steps > switch_time > 0:
+           env.obstacles = env.new_obstacles
         s = env.reset()
         done = False
         counter = 0
@@ -105,7 +111,6 @@ if __name__ == '__main__':
     blocking_maze.GOAL_STATES = [[0, 8]]
     old_obstacles = [[3, i] for i in range(0, 8)]
     blocking_maze.old_obstacles = old_obstacles
-    blocking_maze.obstacles = old_obstacles
 
     # new obstalces will block the optimal path
     new_obstacles = [[3, i] for i in range(1, 9)]
@@ -115,8 +120,8 @@ if __name__ == '__main__':
     # the exact step for changing will be different
     # However given that 1000 steps is long enough for both algorithms to converge,
     # the difference is guaranteed to be very small
-    obstacle_switch_time = -1
-    max_steps = 1000
+    obstacle_switch_time = 1000
+    max_steps = 3000
     runs = 20
 
     avg_rew = []
