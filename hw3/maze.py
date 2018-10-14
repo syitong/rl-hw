@@ -23,9 +23,21 @@ class Maze:
 
         # all obstacles
         self.obstacles = [[1, 2], [2, 2], [3, 2], [0, 7], [1, 7], [2, 7], [4, 5]]
+        self.old_obstacles = []
+        self.new_obstacles = []
+
+    def encode(self,state):
+        return state[0] * self.WORLD_WIDTH + state[1]
+
+    def decode(self,state_en):
+        x = state_en // self.WORLD_WIDTH
+        y = state_en % self.WORLD_WIDTH
+        return [x,y]
 
     def reset(self):
-        self.state = self.START_STATE
+        self.state = [0,0]
+        self.state[:] = self.START_STATE[:]
+        return self.encode(self.state)
 
     def step(self, action):
         x, y = self.state
@@ -38,7 +50,7 @@ class Maze:
         elif action == self.ACTION_RIGHT:
             y = min(y + 1, self.WORLD_WIDTH - 1)
         if [x, y] in self.obstacles:
-            x, y = state
+            x, y = self.state
         if [x, y] in self.GOAL_STATES:
             reward = 1.0
             done = True
@@ -47,4 +59,4 @@ class Maze:
             done = False
         self.state = [x,y]
 
-        return [x, y], reward, done   # set up a blocking maze instance
+        return self.encode([x,y]), reward, done, None   # set up a blocking maze instance
