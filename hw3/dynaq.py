@@ -189,12 +189,12 @@ def plot_dynaq_maze():
     plt.savefig('dynaq_maze.png')
     plt.close(fig)
 
-if __name__ == '__main__':
+def plot_q_vs_dynaq():
     env1 = gym.make('Taxi-v4')
     env2 = gym.make('Taxi-v5')
-    episodes = 1000
-    switch_time = 950
-    runs = 1
+    episodes = 100
+    switch_time = -1
+    runs = 20
     avg_rew1,avg_rew2 = [], []
     for run in range(runs):
         Q1, rew_list1 = \
@@ -214,12 +214,23 @@ if __name__ == '__main__':
     plt.title("Reward Per Episode")
     plt.savefig('dynaq_taxi.png')
     plt.close(fig)
-    # V1 = QtoV(Q1)
-    # V2 = QtoV(Q2)
-    # fig = plt.figure()
-    # plt.plot(V1,marker='o',linestyle='None',label='dyna-q')
-    # plt.plot(V2,marker='x',linestyle='None',label='q')
-    # plt.legend()
-    # plt.title("Value Function")
-    # plt.savefig('dynaq_taxi_Q.png')
-    # plt.close(fig)
+
+if __name__ == '__main__':
+    env1 = gym.make('Taxi-v4')
+    env2 = gym.make('Taxi-v5')
+    episodes = 300
+    switch_time = 100
+    runs = 20
+    avg_rew1 = []
+    for run in range(runs):
+        Q1, rew_list1 = \
+            dynaq(env1, env2, n=10, alpha=1., gamma=1.0,
+                    episodes=episodes,switch_time=switch_time)
+        avg_rew1.append(rew_list1)
+    avg_rew1 = np.mean(np.array(avg_rew1),axis=0)
+    fig = plt.figure()
+    plt.plot(avg_rew1,label='dyna-q')
+    plt.legend()
+    plt.title("Reward Per Episode")
+    plt.savefig('dynaq_non_stationary.png')
+    plt.close(fig)
