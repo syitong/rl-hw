@@ -44,43 +44,47 @@ def _onestep_q(s, a, ss, r, Q, gamma=1, alpha=0.9):
 
 class plan_model(dict):
     def __init__(self):
+        self._max_mem = 10
         super().__init__()
 
     def feed(self,s,a,ss,r):
         # update the model
         action = self.setdefault(s,{})
-        entry = action.setdefault(a,[0,{},0])
-        entry[0] += 1
+        entry = action.setdefault(a,[[],[]])
         # this is for deterministic environment, for stochastic case, comment
         # out the if clause 
-        if ss not in entry[1].keys():
-            entry[0] = 1
-            entry[1] = {}
-        entry[1][ss] = entry[1].setdefault(ss,0) + 1
-        entry[2] = (entry[2] * (entry[0] - 1) + r) / entry[0]
+        # if ss not in entry[1].keys():
+        #     entry[0] = 1
+        #     entry[1] = {}
+        entry[0].append(ss)
+        if len(entry[0]) > self._max_mem:
+            entry[0].pop(0)
+        entry[1].append(r)
+        if len(entry[1]) > self._max_mem:
+            entry[1].pop(0)
     
     def sample(self):
         state = np.random.choice(list(self.keys()))
         action = np.random.choice(list(self[state].keys()))
         entry = self[state][action]
-        tot = entry[0]
-        p, next_s = [], []
-        for ss,val in entry[1].items():
-            p.append(val / tot)
-            next_s.append(ss)
-        return state, action, np.random.choice(next_s,p=p), entry[2]
+        idx = np.random.choice(len(entry[0]))
+        ss = entry[0][idx]
+        r = entry[1][idx]
+        return state, action, ss, r
 
-def dynaq(env,n=10,gamma=1.,alpha=1.,ep=0.1,max_steps=100,switch_time=-1):
+def dynaq_step(env1,env2,n=10,gamma=1.,alpha=1.,ep=0.1,max_steps=100,switch_time=-1):
+    env = env1
     nS = env.nS
     nA = env.nA
     model = plan_model()
     Q = np.zeros((nS,nA))
     tot_steps = 0
     rew_list = np.zeros(max_steps)
-    env.obstacles = env.old_obstacles
+    switched = False
     while tot_steps < max_steps:
-        if tot_steps > switch_time > 0:
-           env.obstacles = env.new_obstacles
+        if not switched and tot_steps > switch_time > 0:
+           env = env2
+           switched = True
         s = env.reset()
         done = False
         counter = 0
@@ -105,16 +109,63 @@ def dynaq(env,n=10,gamma=1.,alpha=1.,ep=0.1,max_steps=100,switch_time=-1):
     print('')
     return Q, rew_list, tot_steps
 
-if __name__ == '__main__':
-    blocking_maze = Maze()
-    blocking_maze.START_STATE = [5, 3]
-    blocking_maze.GOAL_STATES = [[0, 8]]
+def dynaq(env1,env2,n=10,gamma=1.,alpha=1.,ep=0.1,episodes=500,switch_time=-1):
+    env = env1
+    nS = env.nS
+    nA = env.nA
+    model = plan_model()
+    Q = np.zeros((nS,nA))
+    tot_steps = 0
+    rew_list = np.zeros(episodes)
+    switched = False
+    episode = 0
+    while episode < episodes:
+        if not switched and episode > switch_time > 0:
+           env = env2
+           switched = True
+        s = env.reset()
+        done = False
+        counter = 0
+        rew = 0
+        while not done:
+            a = ep_greedy(Q,s,ep)
+            ss, r, done, _ = env.step(a)
+            _onestep_q(s, a, ss, r, Q, gamma, alpha)
+            model.feed(s, a, ss, r)
+            s = ss
+            counter += 1
+            rew += r
+            # planning step
+            for jdx in range(n):
+                s_, a_, ss_, r_ = model.sample()
+                _onestep_q(s_, a_, ss_, r_, Q, gamma, alpha)
+            print('\repisode {}, episode length {}    '.format(episode,
+                counter),end='')
+            sys.stdout.flush()
+        rew_list[episode] = rew
+        episode += 1
+    print('')
+    return Q, rew_list
+
+def QtoV(Q):
+    V = np.zeros(len(Q))
+    for idx,row in enumerate(Q):
+        V[idx] = np.max(row)
+    return V
+
+def plot_dynaq_maze():
+    maze1 = Maze()
+    maze2 = Maze()
+    maze1.START_STATE = [5, 3]
+    maze1.GOAL_STATES = [[0, 8]]
+    maze2.START_STATE = [5, 3]
+    maze2.GOAL_STATES = [[0, 8]]
     old_obstacles = [[3, i] for i in range(0, 8)]
-    blocking_maze.old_obstacles = old_obstacles
+    maze1.obstacles = old_obstacles
 
     # new obstalces will block the optimal path
     new_obstacles = [[3, i] for i in range(1, 9)]
-    blocking_maze.new_obstacles = new_obstacles
+    maze2.obstacles = new_obstacles
 
     # obstacles will change after 1000 steps
     # the exact step for changing will be different
@@ -127,7 +178,7 @@ if __name__ == '__main__':
     avg_rew = []
     for run in range(runs):
         Q, rew_list, tot_steps = \
-            dynaq(blocking_maze, n=10, alpha=1., gamma=0.95,
+            dynaq_step(maze1, maze2, n=10, alpha=1., gamma=0.95,
                     max_steps=max_steps, switch_time = obstacle_switch_time)
         avg_rew.append(rew_list)
     avg_rew = np.mean(np.array(avg_rew),axis=0)
@@ -137,3 +188,38 @@ if __name__ == '__main__':
     plt.title("Cumulative Reward")
     plt.savefig('dynaq_maze.png')
     plt.close(fig)
+
+if __name__ == '__main__':
+    env1 = gym.make('Taxi-v4')
+    env2 = gym.make('Taxi-v5')
+    episodes = 1000
+    switch_time = 950
+    runs = 1
+    avg_rew1,avg_rew2 = [], []
+    for run in range(runs):
+        Q1, rew_list1 = \
+            dynaq(env1, env2, n=10, alpha=1., gamma=1.0,
+                    episodes=episodes,switch_time=switch_time)
+        avg_rew1.append(rew_list1)
+        Q2, rew_list2 = \
+            dynaq(env1, env2, n=0, alpha=1., gamma=1.0,
+                    episodes=episodes,switch_time=switch_time)
+        avg_rew2.append(rew_list2)
+    avg_rew1 = np.mean(np.array(avg_rew1),axis=0)
+    avg_rew2 = np.mean(np.array(avg_rew2),axis=0)
+    fig = plt.figure()
+    plt.plot(avg_rew1,label='dyna-q')
+    plt.plot(avg_rew2,label='q')
+    plt.legend()
+    plt.title("Reward Per Episode")
+    plt.savefig('dynaq_taxi.png')
+    plt.close(fig)
+    # V1 = QtoV(Q1)
+    # V2 = QtoV(Q2)
+    # fig = plt.figure()
+    # plt.plot(V1,marker='o',linestyle='None',label='dyna-q')
+    # plt.plot(V2,marker='x',linestyle='None',label='q')
+    # plt.legend()
+    # plt.title("Value Function")
+    # plt.savefig('dynaq_taxi_Q.png')
+    # plt.close(fig)

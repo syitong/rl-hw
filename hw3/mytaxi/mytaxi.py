@@ -4,11 +4,23 @@ from gym import utils
 from gym.envs.toy_text import discrete
 import numpy as np
 
+'''
 MAP = [
     "+---------+",
     "|R: | : :G|",
     "| : : : : |",
     "| : : : : |",
+    "| | : | : |",
+    "|Y| : |B: |",
+    "+---------+",
+]
+'''
+
+MAP = [
+    "+---------+",
+    "|R: | : :G|",
+    "| : ? : : |",
+    "| : ? : : |",
     "| | : | : |",
     "|Y| : |B: |",
     "+---------+",
@@ -71,6 +83,7 @@ class TaxiEnv(discrete.DiscreteEnv):
                         if passidx < 4 and passidx != destidx:
                             isd[state] += 1
                         for a in range(nA):
+                            jam = False
                             # defaults
                             newrow, newcol, newpassidx = row, col, passidx
                             reward = -1
@@ -84,13 +97,13 @@ class TaxiEnv(discrete.DiscreteEnv):
                             if a==2:
                                 if self.desc[1+row,2*col+2]==b":":
                                     newcol = min(col+1, maxC)
-                                else:
+                                elif self.desc[1+row,2*col+2]==b"?":
                                     newcol = min(col+1, maxC)
                                     jam = True
                             elif a==3:
                                 if self.desc[1+row,2*col]==b":":
                                     newcol = max(col-1, 0)
-                                else:
+                                elif self.desc[1+row,2*col]==b"?":
                                     newcol = max(col-1, 0)
                                     jam = True
                             elif a==4: # pickup
@@ -116,6 +129,7 @@ class TaxiEnv(discrete.DiscreteEnv):
 
                             else:
                                 newstate = 500
+                                P[state][a].append((1.0, newstate, reward, done))
         for a in range(nA):
             P[500][a].append((1.0, 500, 0, True))
 
@@ -148,7 +162,7 @@ class TaxiEnv(discrete.DiscreteEnv):
     def render(self, mode='human'):
         outfile = StringIO() if mode == 'ansi' else sys.stdout
 
-        if self.s = 500:
+        if self.s == 500:
             out = self.last_render
         else:
             out = self.desc.copy().tolist()
