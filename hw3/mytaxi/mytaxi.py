@@ -19,8 +19,8 @@ MAP = [
 MAP = [
     "+---------+",
     "|R? | : ?G|",
-    "| : ? : : |",
-    "| : ? ? : |",
+    "| ? ? : ? |",
+    "| : ? ? ? |",
     "| | ? | : |",
     "|Y| : |B: |",
     "+---------+",
@@ -80,7 +80,7 @@ class TaxiEnv(discrete.DiscreteEnv):
                 for passidx in range(5):
                     for destidx in range(4):
                         state = self.encode(row, col, passidx, destidx)
-                        if passidx < 4 and passidx != destidx:
+                        if passidx == 0 and destidx == 1:
                             isd[state] += 1
                         for a in range(nA):
                             jam = False

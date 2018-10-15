@@ -264,7 +264,7 @@ def plot_q_vs_dynaq():
     env2 = gym.make('Taxi-v5')
     episodes = 100
     switch_time = -1
-    runs = 20
+    runs = 5
     avg_rew1,avg_rew2 = [], []
     avg_steps1,avg_steps2 = [], []
     for run in range(runs):
@@ -319,7 +319,7 @@ def plot_non_stationary():
     for run in range(runs):
         Q2, rew_list2, steps_list2 = \
             dynaq(env1, env2, n=10, alpha=1., gamma=1.0,
-                    episodes=episodes,switch_time=switch_time,max_mem=1)
+                    episodes=episodes,switch_time=switch_time,max_mem=-1)
         avg_rew2.append(rew_list2)
         avg_steps2.append(steps_list2)
         Q1, rew_list1, steps_list1 = \
