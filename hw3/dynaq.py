@@ -26,6 +26,17 @@ def ep_greedy(Q,s,ep):
     else:
         return greedy(Q,s)
 
+def policy_gen(Q,ep,nS,nA):
+    policy = {}
+    for s in range(nS):
+        row = np.zeros(nA)
+        actions = _greedy(Q,s)
+        row[actions] = (1-ep) / len(actions)
+        row = row + np.ones(nA) * ep / nA
+        policy[s] = row
+    policy[nS] = np.ones(nA) / nA
+    return policy
+
 def testshow(env,policy):
     s = env.reset()
     done = False
@@ -36,6 +47,7 @@ def testshow(env,policy):
         ss, r, done, _ = env.step(a)
         s = ss
         cum_rew += r
+        input()
     env.render()
     print(cum_rew)
 
@@ -43,8 +55,8 @@ def _onestep_q(s, a, ss, r, Q, gamma=1, alpha=0.9):
     Q[s,a] = Q[s,a] + alpha * (r + gamma * np.max(Q[ss]) - Q[s,a])
 
 class plan_model(dict):
-    def __init__(self):
-        self._max_mem = 10
+    def __init__(self,max_mem=10):
+        self._max_mem = max_mem
         super().__init__()
 
     def feed(self,s,a,ss,r):
@@ -72,11 +84,44 @@ class plan_model(dict):
         r = entry[1][idx]
         return state, action, ss, r
 
-def dynaq_step(env1,env2,n=10,gamma=1.,alpha=1.,ep=0.1,max_steps=100,switch_time=-1):
+class plan_model_stationary(dict):
+    def __init__(self):
+        super().__init__()
+
+    def feed(self,s,a,ss,r):
+        # update the model
+        action = self.setdefault(s,{})
+        entry = action.setdefault(a,[0,{},0])
+        # this is for deterministic environment, for stochastic case, comment
+        # out the if clause 
+        if ss not in entry[1].keys():
+            entry[0] = 0
+            entry[1] = {}
+        entry[0] += 1
+        entry[1][ss] = entry[1].setdefault(ss,0) + 1
+        entry[2] = (entry[2] * (entry[0] - 1) + r) / entry[0]
+
+    def sample(self):
+        state = np.random.choice(list(self.keys()))
+        action = np.random.choice(list(self[state].keys()))
+        entry = self[state][action]
+        p, ss_list = [],[]
+        for key,val in entry[1].items():
+            ss_list.append(key)
+            p.append(val/entry[0])
+        ss = np.random.choice(ss_list,p=p)
+        r = entry[2]
+        return state, action, ss, r
+
+def dynaq_step(env1,env2,n=10,gamma=1.,alpha=1.,ep=0.1,
+        max_steps=100,switch_time=-1,max_mem=10):
     env = env1
     nS = env.nS
     nA = env.nA
-    model = plan_model()
+    if max_mem > 0:
+        model = plan_model(max_mem)
+    else:
+        model = plan_model_stationary()
     Q = np.zeros((nS,nA))
     tot_steps = 0
     rew_list = np.zeros(max_steps)
@@ -109,14 +154,19 @@ def dynaq_step(env1,env2,n=10,gamma=1.,alpha=1.,ep=0.1,max_steps=100,switch_time
     print('')
     return Q, rew_list, tot_steps
 
-def dynaq(env1,env2,n=10,gamma=1.,alpha=1.,ep=0.1,episodes=500,switch_time=-1):
+def dynaq(env1,env2,n=10,gamma=1.,alpha=1.,ep=0.1,
+        episodes=500,switch_time=-1,max_mem=10):
     env = env1
     nS = env.nS
     nA = env.nA
-    model = plan_model()
+    if max_mem > 0:
+        model = plan_model(max_mem)
+    else:
+        model = plan_model_stationary()
     Q = np.zeros((nS,nA))
     tot_steps = 0
     rew_list = np.zeros(episodes)
+    steps_list = np.zeros(episodes)
     switched = False
     episode = 0
     while episode < episodes:
@@ -143,15 +193,23 @@ def dynaq(env1,env2,n=10,gamma=1.,alpha=1.,ep=0.1,episodes=500,switch_time=-1):
                 counter),end='')
             sys.stdout.flush()
         rew_list[episode] = rew
+        steps_list[episode] = counter
         episode += 1
     print('')
-    return Q, rew_list
+    return Q, rew_list, steps_list
 
 def QtoV(Q):
     V = np.zeros(len(Q))
     for idx,row in enumerate(Q):
         V[idx] = np.max(row)
     return V
+
+def action(policy,s):
+    if sum(policy[s]) != 1:
+        p = policy[s] / sum(policy[s])
+    else:
+        p = policy[s]
+    return np.random.choice(len(policy[0]),p=p)
 
 def plot_dynaq_maze():
     maze1 = Maze()
@@ -173,18 +231,30 @@ def plot_dynaq_maze():
     # the difference is guaranteed to be very small
     obstacle_switch_time = 1000
     max_steps = 3000
-    runs = 20
+    runs = 50
 
-    avg_rew = []
+    avg_rew1 = []
+    avg_rew2 = []
     for run in range(runs):
-        Q, rew_list, tot_steps = \
+        print('run ',run)
+        Q1, rew_list1, tot_steps1 = \
             dynaq_step(maze1, maze2, n=10, alpha=1., gamma=0.95,
-                    max_steps=max_steps, switch_time = obstacle_switch_time)
-        avg_rew.append(rew_list)
-    avg_rew = np.mean(np.array(avg_rew),axis=0)
-    cum_rew = [sum(avg_rew[:i+1]) for i in range(len(avg_rew))]
+                    max_steps=max_steps, switch_time = obstacle_switch_time,
+                    max_mem=1)
+        avg_rew1.append(rew_list1)
+        Q2, rew_list2, tot_steps2 = \
+            dynaq_step(maze1, maze2, n=10, alpha=1., gamma=0.95,
+                    max_steps=max_steps, switch_time = obstacle_switch_time,
+                    max_mem=-1)
+        avg_rew2.append(rew_list2)
+    avg_rew1 = np.mean(np.array(avg_rew1),axis=0)
+    cum_rew1 = [sum(avg_rew1[:i+1]) for i in range(len(avg_rew1))]
+    avg_rew2 = np.mean(np.array(avg_rew2),axis=0)
+    cum_rew2 = [sum(avg_rew2[:i+1]) for i in range(len(avg_rew2))]
     fig = plt.figure()
-    plt.plot(cum_rew)
+    plt.plot(cum_rew1,label='mem-10')
+    plt.plot(cum_rew2,label='mem-inf')
+    plt.legend()
     plt.title("Cumulative Reward")
     plt.savefig('dynaq_maze.png')
     plt.close(fig)
@@ -196,41 +266,98 @@ def plot_q_vs_dynaq():
     switch_time = -1
     runs = 20
     avg_rew1,avg_rew2 = [], []
+    avg_steps1,avg_steps2 = [], []
     for run in range(runs):
-        Q1, rew_list1 = \
+        Q1, rew_list1, steps_list1 = \
             dynaq(env1, env2, n=10, alpha=1., gamma=1.0,
                     episodes=episodes,switch_time=switch_time)
         avg_rew1.append(rew_list1)
-        Q2, rew_list2 = \
+        avg_steps1.append(steps_list1)
+        Q2, rew_list2, steps_list2 = \
             dynaq(env1, env2, n=0, alpha=1., gamma=1.0,
                     episodes=episodes,switch_time=switch_time)
         avg_rew2.append(rew_list2)
+        avg_steps2.append(steps_list2)
     avg_rew1 = np.mean(np.array(avg_rew1),axis=0)
     avg_rew2 = np.mean(np.array(avg_rew2),axis=0)
+    avg_steps1 = np.mean(np.array(avg_steps1),axis=0)
+    avg_steps2 = np.mean(np.array(avg_steps2),axis=0)
+    cum_steps1 = [sum(avg_steps1[:idx]) for idx in range(episodes)]
+    cum_steps2 = [sum(avg_steps2[:idx]) for idx in range(episodes)]
     fig = plt.figure()
     plt.plot(avg_rew1,label='dyna-q')
     plt.plot(avg_rew2,label='q')
     plt.legend()
     plt.title("Reward Per Episode")
-    plt.savefig('dynaq_taxi.png')
+    plt.savefig('dynaq_taxi_rewards.png')
+    plt.close(fig)
+    fig = plt.figure()
+    plt.plot(cum_steps1,label='dyna-q')
+    plt.plot(cum_steps2,label='q')
+    plt.legend()
+    plt.title("Steps Per Episode")
+    plt.savefig('dynaq_taxi_steps.png')
+    plt.close(fig)
+    fig = plt.figure()
+    V1 = QtoV(Q1)
+    V2 = QtoV(Q2)
+    plt.plot(V1,marker='o',linestyle='None',label='dyna-q')
+    plt.plot(V2,marker='x',linestyle='None',label='q')
+    plt.legend()
+    plt.title("Value Function")
+    plt.savefig('dynaq_taxi_value.png')
     plt.close(fig)
 
-if __name__ == '__main__':
+def plot_non_stationary():
     env1 = gym.make('Taxi-v4')
     env2 = gym.make('Taxi-v5')
     episodes = 300
-    switch_time = 100
+    switch_time = 200
     runs = 20
-    avg_rew1 = []
+    avg_rew1,avg_rew2 = [], []
+    avg_steps1,avg_steps2 = [], []
     for run in range(runs):
-        Q1, rew_list1 = \
+        Q2, rew_list2, steps_list2 = \
             dynaq(env1, env2, n=10, alpha=1., gamma=1.0,
-                    episodes=episodes,switch_time=switch_time)
+                    episodes=episodes,switch_time=switch_time,max_mem=-1)
+        avg_rew2.append(rew_list2)
+        avg_steps2.append(steps_list2)
+        Q1, rew_list1, steps_list1 = \
+            dynaq(env1, env2, n=10, alpha=1., gamma=1.0,
+                    episodes=episodes,switch_time=switch_time,max_mem=10)
         avg_rew1.append(rew_list1)
+        avg_steps1.append(steps_list1)
     avg_rew1 = np.mean(np.array(avg_rew1),axis=0)
+    avg_rew2 = np.mean(np.array(avg_rew2),axis=0)
+    avg_steps1 = np.mean(np.array(avg_steps1),axis=0)
+    avg_steps2 = np.mean(np.array(avg_steps2),axis=0)
+    cum_steps1 = [sum(avg_steps1[:idx]) for idx in range(episodes)]
+    cum_steps2 = [sum(avg_steps2[:idx]) for idx in range(episodes)]
     fig = plt.figure()
-    plt.plot(avg_rew1,label='dyna-q')
+    plt.plot(avg_rew1,label='mem-10')
+    plt.plot(avg_rew2,label='mem-inf')
     plt.legend()
     plt.title("Reward Per Episode")
-    plt.savefig('dynaq_non_stationary.png')
+    plt.savefig('dynaq_non_stationary_rewards.png')
     plt.close(fig)
+    fig = plt.figure()
+    plt.plot(cum_steps1,label='mem-10')
+    plt.plot(cum_steps2,label='mem-inf')
+    plt.legend()
+    plt.title("Steps Per Episode")
+    plt.savefig('dynaq_non_stationary_steps.png')
+    plt.close(fig)
+    fig = plt.figure()
+    V1 = QtoV(Q1)
+    V2 = QtoV(Q2)
+    plt.plot(V1,marker='o',linestyle='None',label='mem-10')
+    plt.plot(V2,marker='x',linestyle='None',label='mem-inf')
+    plt.legend()
+    plt.title("Value Function")
+    plt.savefig('dynaq_non_stationary_value.png')
+    plt.close(fig)
+    # policy = policy_gen(Q1,0,env2.nS,env1.nA)
+    # testshow(env2,policy)
+    
+if __name__ == '__main__':
+    plot_q_vs_dynaq()
