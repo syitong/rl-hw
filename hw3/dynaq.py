@@ -94,9 +94,9 @@ class plan_model_stationary(dict):
         entry = action.setdefault(a,[0,{},0])
         # this is for deterministic environment, for stochastic case, comment
         # out the if clause 
-        if ss not in entry[1].keys():
-            entry[0] = 0
-            entry[1] = {}
+        # if ss not in entry[1].keys():
+        #     entry[0] = 0
+        #     entry[1] = {}
         entry[0] += 1
         entry[1][ss] = entry[1].setdefault(ss,0) + 1
         entry[2] = (entry[2] * (entry[0] - 1) + r) / entry[0]
@@ -312,14 +312,14 @@ def plot_non_stationary():
     env1 = gym.make('Taxi-v4')
     env2 = gym.make('Taxi-v5')
     episodes = 300
-    switch_time = 200
-    runs = 20
+    switch_time = 100
+    runs = 5
     avg_rew1,avg_rew2 = [], []
     avg_steps1,avg_steps2 = [], []
     for run in range(runs):
         Q2, rew_list2, steps_list2 = \
             dynaq(env1, env2, n=10, alpha=1., gamma=1.0,
-                    episodes=episodes,switch_time=switch_time,max_mem=-1)
+                    episodes=episodes,switch_time=switch_time,max_mem=1)
         avg_rew2.append(rew_list2)
         avg_steps2.append(steps_list2)
         Q1, rew_list1, steps_list1 = \
@@ -334,8 +334,8 @@ def plot_non_stationary():
     cum_steps1 = [sum(avg_steps1[:idx]) for idx in range(episodes)]
     cum_steps2 = [sum(avg_steps2[:idx]) for idx in range(episodes)]
     fig = plt.figure()
-    plt.plot(avg_rew1,label='mem-10')
-    plt.plot(avg_rew2,label='mem-inf')
+    plt.plot(avg_rew1[10:],label='mem-10')
+    plt.plot(avg_rew2[10:],label='mem-inf')
     plt.legend()
     plt.title("Reward Per Episode")
     plt.savefig('dynaq_non_stationary_rewards.png')
@@ -360,4 +360,4 @@ def plot_non_stationary():
     # testshow(env2,policy)
     
 if __name__ == '__main__':
-    plot_q_vs_dynaq()
+    plot_non_stationary()
