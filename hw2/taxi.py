@@ -15,7 +15,7 @@ def rms(a,b):
 
 def td0(env,V_init,policy,baseline,gamma=1,alpha=0.9,episodes=1000,runs=1):
     nS = env.nS
-    np.random.seed(4)
+    np.random.seed(3)
     env.seed(5)
     RMS = np.zeros((runs,episodes))
     for run in range(runs):
@@ -68,7 +68,7 @@ def ep_greedy(Q,s,ep):
     else:
         return greedy(Q,s)
 
-def policy_gen(Q,ep):
+def policy_gen(Q,ep,nS,nA):
     policy = {}
     for s in range(nS):
         row = np.zeros(nA)
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     nS = env.nS
     # V_init,policy = reset(nA,nS)
     # Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,episodes=10000)
-    # policy = policy_gen(Q,0.1)
+    # policy = policy_gen(Q,0.1,nS,nA)
     # with open('policy','w') as fp:
     #     fp.write(str(policy))
     # params = {
@@ -213,17 +213,41 @@ if __name__ == '__main__':
     #     }
     # baseline = policy_eval(**params)
     # np.save('baseline',baseline)
-    # baseline = np.load('baseline.npy')
+    baseline = np.load('baseline.npy')
     policy = np.load('policy.npy')
-    # V_init,_ = reset(nA,nS)
-    # plot_td0(env=env,V_init=V_init,policy=policy,
+    V_init,_ = reset(nA,nS)
+    # rms, V = td0(env=env,V_init=V_init,policy=policy,
     #     baseline=baseline,gamma=1,alpha=0.1,runs=1,episodes=50000)
-    # Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,runs=20,episodes=500)
-    # np.save('avg_rew',rew_list)
-    # fig = plt.figure()
-    # plt.plot(rew_list)
-    # plt.savefig('qlearn-interim.eps')
-    # plt.close(fig)
+    # np.save('td0rms',rms)
+    # np.save('td0V',V)
+    rms = np.load('td0rms.npy')
+    V = np.load('td0V.npy')
+    fig = plt.figure()
+    plt.plot(rms)
+    plt.xlabel('Episodes')
+    plt.ylabel('RMS')
+    plt.title('TD0')
+    plt.savefig('td0rms.eps')
+    plt.close(fig)
+    fig = plt.figure()
+    plt.scatter(range(501),V,marker='x',c='r',label='td0')
+    plt.scatter(range(501),baseline,marker='o',edgecolors='b',facecolors='none',label='baseline')
+    plt.xlabel('State')
+    plt.ylabel('$V_{\pi}(s)$')
+    plt.title('TD0')
+    plt.legend()
+    plt.savefig('td0value.eps')
+    plt.close(fig)
+    # Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,runs=10,episodes=500)
+    # np.save('qlearn_rew',rew_list)
+    rew_list = np.load('qlearn_rew.npy')
+    fig = plt.figure()
+    plt.plot(rew_list)
+    plt.xlabel('Episodes')
+    plt.ylabel('Sum of rewards received\nwithin each episode',multialignment='center')
+    plt.title('Q learning')
+    plt.savefig('qlearn.eps',bbox_inches='tight')
+    plt.close(fig)
     # Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,runs=1,episodes=100000)
     # np.save('Qtable',Q)
     # Vq = QtoV(Q)
@@ -236,7 +260,7 @@ if __name__ == '__main__':
     # plt.plot(rew_list[-100:])
     # plt.savefig('qlearn-asym.eps')
     # plt.close(fig)
-    testshow(env,policy)
+    # testshow(env,policy)
 
     # mc control
     # env = gym.make('Taxi-v3').unwrapped
