@@ -113,53 +113,6 @@ def qlearn(env,gamma=1,alpha=0.9,ep=0.05,runs=1,episodes=1000):
     rew_list = np.mean(np.array(rew_alloc),axis=0)
     return Q, rew_list
 
-def mc_control(env,gamma=1,ep=0.1,runs=1,episodes=1000,T=0):
-    np.random.seed(3)
-    env.seed(5)
-    nA = env.nA
-    nS = env.nS
-    rew_alloc = []
-    for run in range(runs):
-        Q = np.zeros((nS,nA))
-        Q1 = np.zeros((nS,nA))
-        C = np.zeros((nS,nA))
-        rew_list = np.zeros(episodes)
-        for idx in range(episodes):
-            s = env.reset()
-            done = False
-            counter = 0
-            cum_rew = 0
-            G = np.zeros((nS,nA))
-            qset = set()
-            while not done:
-                if T and counter > T:
-                    break
-                a = ep_greedy(Q1,s,ep)
-                if (s,a) not in qset:
-                    G[s,a] = 0
-                    qset.add((s,a))
-                # if do not terminate immature episode, we consider
-                # immediate reward in Q table to alter the agent's
-                # bad behaviour.
-                elif not T:
-                    Q1[s,a] = (C[s,a] * Q[s,a] + G[s,a]) / (C[s,a]+1)
-                ss, r, done, _ = env.step(a)
-                s = ss
-                G = gamma * G + r
-                cum_rew = cum_rew * gamma + r
-                # input('{},{}'.format(a,cum_rew))
-                counter += 1
-            print('\repisode {} steps {}     '.format(idx,counter),end='')
-            sys.stdout.flush()
-            for (s,a) in qset:
-                Q[s,a] = (C[s,a] * Q[s,a] + G[s,a]) / (C[s,a]+1)
-                C[s,a] += 1
-            Q1 = copy.deepcopy(Q)
-            rew_list[idx] = cum_rew
-        rew_alloc.append(rew_list)
-    rew_list = np.mean(np.array(rew_alloc),axis=0)
-    return Q, rew_list
-
 def QtoV(Q):
     V = np.zeros(len(Q))
     for idx,row in enumerate(Q):
@@ -198,6 +151,7 @@ if __name__ == '__main__':
     env = gym.make('Taxi-v3').unwrapped
     nA = env.nA
     nS = env.nS
+    ########### Generate policy and evaluate baseline.
     # V_init,policy = reset(nA,nS)
     # Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,episodes=10000)
     # policy = policy_gen(Q,0.1,nS,nA)
@@ -213,15 +167,16 @@ if __name__ == '__main__':
     #     }
     # baseline = policy_eval(**params)
     # np.save('baseline',baseline)
+    ##############
     baseline = np.load('baseline.npy')
     policy = np.load('policy.npy')
     V_init,_ = reset(nA,nS)
-    # rms, V = td0(env=env,V_init=V_init,policy=policy,
-    #     baseline=baseline,gamma=1,alpha=0.1,runs=1,episodes=50000)
-    # np.save('td0rms',rms)
-    # np.save('td0V',V)
-    rms = np.load('td0rms.npy')
-    V = np.load('td0V.npy')
+    rms, V = td0(env=env,V_init=V_init,policy=policy,
+        baseline=baseline,gamma=1,alpha=0.1,runs=1,episodes=50000)
+    np.save('td0rms',rms)
+    np.save('td0V',V)
+    # rms = np.load('td0rms.npy')
+    # V = np.load('td0V.npy')
     fig = plt.figure()
     plt.plot(rms)
     plt.xlabel('Episodes')
@@ -238,9 +193,9 @@ if __name__ == '__main__':
     plt.legend()
     plt.savefig('td0value.eps')
     plt.close(fig)
-    # Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,runs=10,episodes=500)
-    # np.save('qlearn_rew',rew_list)
-    rew_list = np.load('qlearn_rew.npy')
+    Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,runs=10,episodes=500)
+    np.save('qlearn_rew',rew_list)
+    # rew_list = np.load('qlearn_rew.npy')
     fig = plt.figure()
     plt.plot(rew_list)
     plt.xlabel('Episodes')
@@ -248,28 +203,3 @@ if __name__ == '__main__':
     plt.title('Q learning')
     plt.savefig('qlearn.eps',bbox_inches='tight')
     plt.close(fig)
-    # Q, rew_list = qlearn(env=env,gamma=1,alpha=0.9,ep=0.1,runs=1,episodes=100000)
-    # np.save('Qtable',Q)
-    # Vq = QtoV(Q)
-    # fig = plt.figure()
-    # plt.plot(baseline,marker='x',linestyle='None',label='baseline')
-    # plt.plot(Vq,marker='o',linestyle='None',label='Vq')
-    # plt.savefig('optv.eps')
-    # plt.close(fig)
-    # fig = plt.figure()
-    # plt.plot(rew_list[-100:])
-    # plt.savefig('qlearn-asym.eps')
-    # plt.close(fig)
-    # testshow(env,policy)
-
-    # mc control
-    # env = gym.make('Taxi-v3').unwrapped
-    # nA = env.nA
-    # nS = env.nS
-    # Q, rew_list = mc_control(env=env,gamma=1,
-    #     ep=0.1,runs=10,episodes=1000)
-    # np.save('rew_list',rew_list)
-    # fig = plt.figure()
-    # plt.plot([rew for idx,rew in enumerate(rew_list) if idx % 50 == 0])
-    # plt.savefig('mc_control.eps')
-    # plt.close(fig)
