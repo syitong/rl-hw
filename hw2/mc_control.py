@@ -26,6 +26,9 @@ def make_epsilon_greedy_policy(Q, epsilon, nA):
 
 
 def mc_control_epsilon_greedy(env, num_episodes, epsilon=0.1, runs=10):
+    np.random.seed(3)
+    env.seed(5)
+
     runs = 10
     rew_alloc = []
     for run in range(runs):
@@ -68,8 +71,7 @@ def mc_control_epsilon_greedy(env, num_episodes, epsilon=0.1, runs=10):
                 # Find the first occurance of the (state, action) pair in the episode
                 first_occurence_idx = next(i for i,x in enumerate(episode)
                                            if x[0] == state and x[1] == action)
-                # Sum up all rewards since the first occurance
-                # G = sum([x[2]*(discount_factor**i) for i,x in enumerate(episode[first_occurence_idx:])])
+                # Sum up all rewards since the first occurrence
                 G = sum([x[2] for x in episode[first_occurence_idx:]])
                 # Update Q
                 returns_sum[sa_pair] += G
