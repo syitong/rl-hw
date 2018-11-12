@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 import gym
 import mytaxi
-from maze import Maze
+# from maze import Maze
 
 def _greedy(Q,s):
     qmax = np.max(Q[s])
@@ -64,7 +64,7 @@ class plan_model(dict):
         action = self.setdefault(s,{})
         entry = action.setdefault(a,[[],[]])
         # this is for deterministic environment, for stochastic case, comment
-        # out the if clause 
+        # out the if clause
         # if ss not in entry[1].keys():
         #     entry[0] = 1
         #     entry[1] = {}
@@ -74,7 +74,7 @@ class plan_model(dict):
         entry[1].append(r)
         if len(entry[1]) > self._max_mem:
             entry[1].pop(0)
-    
+
     def sample(self):
         state = np.random.choice(list(self.keys()))
         action = np.random.choice(list(self[state].keys()))
@@ -93,7 +93,7 @@ class plan_model_stationary(dict):
         action = self.setdefault(s,{})
         entry = action.setdefault(a,[0,{},0])
         # this is for deterministic environment, for stochastic case, comment
-        # out the if clause 
+        # out the if clause
         # if ss not in entry[1].keys():
         #     entry[0] = 0
         #     entry[1] = {}
@@ -211,53 +211,53 @@ def action(policy,s):
         p = policy[s]
     return np.random.choice(len(policy[0]),p=p)
 
-def plot_dynaq_maze():
-    maze1 = Maze()
-    maze2 = Maze()
-    maze1.START_STATE = [5, 3]
-    maze1.GOAL_STATES = [[0, 8]]
-    maze2.START_STATE = [5, 3]
-    maze2.GOAL_STATES = [[0, 8]]
-    old_obstacles = [[3, i] for i in range(0, 8)]
-    maze1.obstacles = old_obstacles
-
-    # new obstalces will block the optimal path
-    new_obstacles = [[3, i] for i in range(1, 9)]
-    maze2.obstacles = new_obstacles
-
-    # obstacles will change after 1000 steps
-    # the exact step for changing will be different
-    # However given that 1000 steps is long enough for both algorithms to converge,
-    # the difference is guaranteed to be very small
-    obstacle_switch_time = 1000
-    max_steps = 3000
-    runs = 50
-
-    avg_rew1 = []
-    avg_rew2 = []
-    for run in range(runs):
-        print('run ',run)
-        Q1, rew_list1, tot_steps1 = \
-            dynaq_step(maze1, maze2, n=10, alpha=1., gamma=0.95,
-                    max_steps=max_steps, switch_time = obstacle_switch_time,
-                    max_mem=1)
-        avg_rew1.append(rew_list1)
-        Q2, rew_list2, tot_steps2 = \
-            dynaq_step(maze1, maze2, n=10, alpha=1., gamma=0.95,
-                    max_steps=max_steps, switch_time = obstacle_switch_time,
-                    max_mem=-1)
-        avg_rew2.append(rew_list2)
-    avg_rew1 = np.mean(np.array(avg_rew1),axis=0)
-    cum_rew1 = [sum(avg_rew1[:i+1]) for i in range(len(avg_rew1))]
-    avg_rew2 = np.mean(np.array(avg_rew2),axis=0)
-    cum_rew2 = [sum(avg_rew2[:i+1]) for i in range(len(avg_rew2))]
-    fig = plt.figure()
-    plt.plot(cum_rew1,label='mem-10')
-    plt.plot(cum_rew2,label='mem-inf')
-    plt.legend()
-    plt.title("Cumulative Reward")
-    plt.savefig('dynaq_maze.png')
-    plt.close(fig)
+# def plot_dynaq_maze():
+#     maze1 = Maze()
+#     maze2 = Maze()
+#     maze1.START_STATE = [5, 3]
+#     maze1.GOAL_STATES = [[0, 8]]
+#     maze2.START_STATE = [5, 3]
+#     maze2.GOAL_STATES = [[0, 8]]
+#     old_obstacles = [[3, i] for i in range(0, 8)]
+#     maze1.obstacles = old_obstacles
+#
+#     # new obstalces will block the optimal path
+#     new_obstacles = [[3, i] for i in range(1, 9)]
+#     maze2.obstacles = new_obstacles
+#
+#     # obstacles will change after 1000 steps
+#     # the exact step for changing will be different
+#     # However given that 1000 steps is long enough for both algorithms to converge,
+#     # the difference is guaranteed to be very small
+#     obstacle_switch_time = 1000
+#     max_steps = 3000
+#     runs = 50
+#
+#     avg_rew1 = []
+#     avg_rew2 = []
+#     for run in range(runs):
+#         print('run ',run)
+#         Q1, rew_list1, tot_steps1 = \
+#             dynaq_step(maze1, maze2, n=10, alpha=1., gamma=0.95,
+#                     max_steps=max_steps, switch_time = obstacle_switch_time,
+#                     max_mem=1)
+#         avg_rew1.append(rew_list1)
+#         Q2, rew_list2, tot_steps2 = \
+#             dynaq_step(maze1, maze2, n=10, alpha=1., gamma=0.95,
+#                     max_steps=max_steps, switch_time = obstacle_switch_time,
+#                     max_mem=-1)
+#         avg_rew2.append(rew_list2)
+#     avg_rew1 = np.mean(np.array(avg_rew1),axis=0)
+#     cum_rew1 = [sum(avg_rew1[:i+1]) for i in range(len(avg_rew1))]
+#     avg_rew2 = np.mean(np.array(avg_rew2),axis=0)
+#     cum_rew2 = [sum(avg_rew2[:i+1]) for i in range(len(avg_rew2))]
+#     fig = plt.figure()
+#     plt.plot(cum_rew1,label='mem-10')
+#     plt.plot(cum_rew2,label='mem-inf')
+#     plt.legend()
+#     plt.title("Cumulative Reward")
+#     plt.savefig('dynaq_maze.png')
+#     plt.close(fig)
 
 def plot_q_vs_dynaq():
     env1 = gym.make('Taxi-v4')
@@ -358,6 +358,6 @@ def plot_non_stationary():
     plt.close(fig)
     # policy = policy_gen(Q1,0,env2.nS,env1.nA)
     # testshow(env2,policy)
-    
+
 if __name__ == '__main__':
     plot_non_stationary()
