@@ -1,7 +1,7 @@
 import gym
 from gym.envs.registration import register
 import matplotlib as mpl
-# mpl.use('agg')
+mpl.use('agg')
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 import numpy as np
