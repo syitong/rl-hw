@@ -43,12 +43,19 @@ def policy_eval(trans_mat, V_init, policy, theta, gamma=1, inplace=True):
             return V
 
 def policy_improve(V, s, trans_mat, gamma=1):
-    nA = len(trans_mat[s])
-    q = np.ones(nA) * -np.inf
+    q = {}
+    for a in trans_mat[s].keys():
+        q[a] = -np.inf
     for a,_ in trans_mat[s].items():
         q[a] = _onestep_q(V, s, a, trans_mat, gamma)
-    aa = (q == max(q))
-    aa = aa / sum(aa)
+    max_q = max(q.values())
+    count_max = 0
+    for a,val in q.items():
+        if q[a]==max_q:
+            count_max += 1
+    aa = {}
+    for a in q.keys():
+        aa[a] = 1/count_max if q[a] == max_q else 0
     return aa, q
 
 def policy_iter(trans_mat, V_init, policy, theta, gamma=1, inplace=True):
@@ -72,11 +79,11 @@ def value_iter(trans_mat, V_init, theta, gamma=1, inplace=True):
         delta = 0
         for s,_ in trans_mat.items():
             aa, q = policy_improve(V, s, trans_mat, gamma)
-            delta = max(delta, np.abs(V[s] - max(q)))
+            delta = max(delta, np.abs(V[s] - max(q.values())))
             if inplace:
-                V[s] = max(q)
+                V[s] = max(q.values())
             else:
-                U[s] = max(q)
+                U[s] = max(q.values())
         if not inplace:
             V = U
         if delta < theta:
