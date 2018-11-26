@@ -5,7 +5,7 @@ import gym
 def reset(nA):
     POLICY = {}
     pie = np.ones(nA) * 1/nA
-    for s in range(len(trans_mat)):
+    for s,_ in trans_mat.items():
         POLICY[s] = pie
     V_init = np.zeros(len(trans_mat))
     return V_init, POLICY
@@ -27,10 +27,10 @@ def _onestep_v(V, s, policy, trans_mat, gamma=1):
 
 def policy_eval(trans_mat, V_init, policy, theta, gamma=1, inplace=True):
     V = V_init
-    U = np.zeros(np.shape(V_init))
+    U = V_init.copy()
     while True:
         delta = 0
-        for s in range(len(trans_mat)):
+        for s,_ in trans_mat.items():
             dd,v = _onestep_v(V, s, policy, trans_mat, gamma)
             delta = max(delta, dd)
             if inplace:
@@ -56,7 +56,7 @@ def policy_iter(trans_mat, V_init, policy, theta, gamma=1, inplace=True):
     while not is_stable:
         is_stable = True
         V = policy_eval(trans_mat, V_init, policy, theta, gamma, inplace=inplace)
-        for s in range(len(trans_mat)):
+        for s,_ in trans_mat.items():
             aa, _ = policy_improve(V, s, trans_mat, gamma)
             if not np.array_equal(policy[s], aa):
                 policy[s] = aa
@@ -65,12 +65,12 @@ def policy_iter(trans_mat, V_init, policy, theta, gamma=1, inplace=True):
 
 def value_iter(trans_mat, V_init, theta, gamma=1, inplace=True):
     V = V_init
-    U = np.zeros(np.shape(V_init))
+    U = V_init.copy()
     next_iter = True
     policy = {}
     while next_iter:
         delta = 0
-        for s in range(len(trans_mat)):
+        for s,_ in trans_mat.items():
             aa, q = policy_improve(V, s, trans_mat, gamma)
             delta = max(delta, np.abs(V[s] - max(q)))
             if inplace:
@@ -81,7 +81,7 @@ def value_iter(trans_mat, V_init, theta, gamma=1, inplace=True):
             V = U
         if delta < theta:
             next_iter = False
-    for s in range(len(trans_mat)):
+    for s,_ in trans_mat.items():
         policy[s] = np.zeros(len(trans_mat[s]))
         aa, _ = policy_improve(V, s, trans_mat, gamma)
         policy[s] = aa
