@@ -1,3 +1,5 @@
+import numpy as np
+
 def _greedy(Q,s):
     qmax = np.max(Q(s))
     actions = []
