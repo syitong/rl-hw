@@ -35,7 +35,7 @@ class memory(list):
 #     return proxy
 
 def dqn(N, num_episodes, env,
-        ep_decay_rate, batch_size,
+        ep_start, batch_size,
         gamma, a_list, C, lrate, lambda_, T=5000):
     nA = len(a_list)
     D = memory(N)
@@ -44,10 +44,11 @@ def dqn(N, num_episodes, env,
     Q = model.Q
     Qhat = model.Qhat
     num_steps = []
+    success = 0
     iter = 0
     for episode in range(num_episodes):
         s = env.reset()
-        ep = 0.1 + (1-0.1) / (episode * ep_decay_rate + 1)
+        ep = 0.1 + (ep_start-0.1) / (success + 1)
         for t in range(T):
             a = ep_greedy(Q, s, ep)
             ss, r, done, _ = env.step(a)
@@ -75,6 +76,8 @@ def dqn(N, num_episodes, env,
             if done:
                 break
             sys.stdout.flush()
+        if t < 4000:
+            success += 1
         num_steps += [t]
     model.save()
     print('\n')
@@ -116,16 +119,16 @@ if __name__ == '__main__':
         reward_threshold=-110.0,
     )
     env = gym.make('MountainCar-v1')
-    ep_decay_rate = 0.5
+    ep_start = 0.5
     batch_size = 5
     gamma = 1
     a_list = [0,1,2]
     C = 50
     lrate = 0.00002
-    lambda_ = 0.1
+    lambda_ = 0.
 
     num_steps = dqn(N, num_episodes, env,
-        ep_decay_rate, batch_size, gamma, a_list, C, lrate, lambda_)
+        ep_start, batch_size, gamma, a_list, C, lrate, lambda_)
     plot_dqn(num_steps)
     agent = nn_model(2, a_list, 'test1', lambda_, lrate, load=True) # implement two networks in one model with an update method.
     rounds = 10

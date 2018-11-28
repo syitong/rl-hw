@@ -59,46 +59,46 @@ class nn_model:
             output_dim = len(self.a_list)
             with tf.variable_scope('train'):
                 self.w['l1w'] = l1w = tf.Variable(
-                    tf.glorot_uniform_initializer()((self.dim,100)))
+                    tf.glorot_uniform_initializer()((self.dim,10)))
                 self.w['l1b'] = l1b = tf.Variable(
-                    tf.constant(0., shape=[100]))
+                    tf.constant(0., shape=[10]))
                 L1 = tf.nn.relu(tf.matmul(s, l1w) + l1b)
-                # self.w['l2w'] = l2w = tf.Variable(
-                #     tf.glorot_uniform_initializer()((10,10)))
-                # self.w['l2b'] = l2b = tf.Variable(
-                #     tf.constant(0., shape=[10]))
-                # L2 = tf.nn.relu(tf.matmul(L1, l2w) + l2b)
+                self.w['l2w'] = l2w = tf.Variable(
+                    tf.glorot_uniform_initializer()((10,10)))
+                self.w['l2b'] = l2b = tf.Variable(
+                    tf.constant(0., shape=[10]))
+                L2 = tf.nn.relu(tf.matmul(L1, l2w) + l2b)
                 # self.w['l3w'] = l3w = tf.Variable(
                 #     tf.glorot_uniform_initializer()((10,10)))
                 # self.w['l3b'] = l3b = tf.Variable(
                 #     tf.constant(0., shape=[10]))
                 # L3 = tf.nn.relu(tf.matmul(L2, l3w) + l3b)
                 self.w['l4w'] = l4w = tf.Variable(
-                    tf.glorot_uniform_initializer()((100,output_dim)))
-                self.pred = tf.matmul(L1,l4w)
+                    tf.glorot_uniform_initializer()((10,output_dim)))
+                self.pred = tf.matmul(L2,l4w)
                 q_act = tf.reduce_mean(self.pred * onehot, reduction_indices=1)
                 self.loss = tf.reduce_mean(
                     (clipped_error(q_act  - tf.reshape(y,[-1,1])))**2) \
                     + self.lambda_ * (tf.norm(l1w) + tf.norm(l4w))
             with tf.variable_scope('target'):
                 self.w_t['l1w'] = l1w = tf.Variable(
-                    tf.constant(0., shape=[self.dim,100]))
+                    tf.constant(0., shape=[self.dim,10]))
                 self.w_t['l1b'] = l1b = tf.Variable(
-                    tf.constant(0., shape=[100]))
+                    tf.constant(0., shape=[10]))
                 L1 = tf.nn.relu(tf.matmul(s, l1w) + l1b)
-                # self.w_t['l2w'] = l2w = tf.Variable(
-                #     tf.constant(0., shape=[10,10]))
-                # self.w_t['l2b'] = l2b = tf.Variable(
-                #     tf.constant(0., shape=[10]))
-                # L2 = tf.nn.relu(tf.matmul(L1, l2w) + l2b)
+                self.w_t['l2w'] = l2w = tf.Variable(
+                    tf.constant(0., shape=[10,10]))
+                self.w_t['l2b'] = l2b = tf.Variable(
+                    tf.constant(0., shape=[10]))
+                L2 = tf.nn.relu(tf.matmul(L1, l2w) + l2b)
                 # self.w_t['l3w'] = l3w = tf.Variable(
                 #     tf.constant(0., shape=[10,10]))
                 # self.w_t['l3b'] = l3b = tf.Variable(
                 #     tf.constant(0., shape=[10]))
                 # L3 = tf.nn.relu(tf.matmul(L2, l3w) + l3b)
                 self.w_t['l4w'] = l4w = tf.Variable(
-                    tf.constant(0., shape=[100,output_dim]))
-                self.pred_t = tf.matmul(L1, l4w)
+                    tf.constant(0., shape=[10,output_dim]))
+                self.pred_t = tf.matmul(L2, l4w)
             with tf.variable_scope('optimize'):
                 # optimizer = tf.train.AdamOptimizer(learning_rate=
                 #     self.lrate)
