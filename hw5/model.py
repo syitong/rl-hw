@@ -1,8 +1,18 @@
 import numpy as np
 import tensorflow as tf
 
+def clipped_error(x):
+    # Huber loss
+    try:
+      return tf.select(tf.abs(x) < 1.0, 0.5 * tf.square(x), tf.abs(x) - 0.5)
+    except:
+      return tf.where(tf.abs(x) < 1.0, 0.5 * tf.square(x), tf.abs(x) - 0.5)
+
 class nn_model:
-    def __init__(self, dim, a_list):
+    def __init__(self, dim, a_list, name, lambda_, load=False):
+        self.lambda_ = lambda_
+        self._name = name
+        self._path = 'trained_agents/'
         self.dim = dim
         self.a_list = a_list
         self.w = {}
@@ -10,7 +20,19 @@ class nn_model:
         self.assign_op = {}
         self._graph = tf.Graph()
         self._sess = tf.Session(graph=self._graph)
-        self._build()
+        try:
+            self._build()
+        except:
+            print('Model Initialization Fails!')
+        else:
+            print('Model Generated!')
+        if load == True:
+            try:
+                self.saver.restore(self._sess, self._path + name)
+            except:
+                print('Restoring Variables Fails!')
+            else:
+                print('Model Restored!')
 
     def get_loss(self, states, actions, targets):
         if hasattr(self, 'loss'):
@@ -55,7 +77,9 @@ class nn_model:
                     tf.glorot_uniform_initializer()((100,output_dim)))
                 self.pred = tf.matmul(L1,l4w)
                 q_act = tf.reduce_mean(self.pred * onehot, reduction_indices=1)
-                self.loss = tf.reduce_mean((q_act  - tf.reshape(y,[-1,1]))**2)
+                self.loss = tf.reduce_mean(
+                    (clipped_error(q_act  - tf.reshape(y,[-1,1])))**2) \
+                    + self.lambda_ * (tf.norm(l1w) + tf.norm(l4w))
             with tf.variable_scope('target'):
                 self.w_t['l1w'] = l1w = tf.Variable(
                     tf.constant(0., shape=[self.dim,100]))
@@ -76,11 +100,11 @@ class nn_model:
                     tf.constant(0., shape=[100,output_dim]))
                 self.pred_t = tf.matmul(L1, l4w)
             with tf.variable_scope('optimize'):
-                # optimizer = tf.train.AdamOptimizer(learning_rate=
-                #     lrate)
-                optimizer = tf.train.GradientDescentOptimizer(
-                    learning_rate=lrate
-                )
+                optimizer = tf.train.AdamOptimizer(learning_rate=
+                    lrate)
+                # optimizer = tf.train.GradientDescentOptimizer(
+                #     learning_rate=lrate
+                # )
                 self.train_op = optimizer.minimize(loss=self.loss,
                     global_step=global_step)
                 init_op = tf.global_variables_initializer()
@@ -88,6 +112,7 @@ class nn_model:
                 for key in self.w.keys():
                     self.assign_op[key] = tf.assign(self.w_t[key], self.w[key])
             self._sess.run(init_op)
+            self.saver = tf.train.Saver()
         self._graph.finalize()
 
     def fit(self, states, actions, targets, lrate):
@@ -117,3 +142,6 @@ class nn_model:
             'states:0': np.array(state).reshape((1,-1)),
         }
         return self._sess.run(self.pred_t, feed_dict)[0]
+
+    def save(self):
+        self.saver.save(self._sess, self._path + self._name)
