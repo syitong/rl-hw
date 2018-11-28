@@ -9,7 +9,8 @@ def clipped_error(x):
       return tf.where(tf.abs(x) < 1.0, 0.5 * tf.square(x), tf.abs(x) - 0.5)
 
 class nn_model:
-    def __init__(self, dim, a_list, name, lambda_, load=False):
+    def __init__(self, dim, a_list, name, lambda_, lrate, load=False):
+        self.lrate = lrate
         self.lambda_ = lambda_
         self._name = name
         self._path = 'trained_agents/'
@@ -54,7 +55,6 @@ class nn_model:
             s = tf.placeholder(dtype=tf.float32, shape=[None, self.dim], name='states')
             a = tf.placeholder(dtype=tf.uint8, shape=[None], name='actions')
             y = tf.placeholder(dtype=tf.float32, shape=[None], name='targets')
-            lrate = tf.placeholder(dtype=tf.float32, shape=[], name='lrate')
             onehot = tf.one_hot(a, depth=len(self.a_list))
             output_dim = len(self.a_list)
             with tf.variable_scope('train'):
@@ -100,11 +100,11 @@ class nn_model:
                     tf.constant(0., shape=[100,output_dim]))
                 self.pred_t = tf.matmul(L1, l4w)
             with tf.variable_scope('optimize'):
-                optimizer = tf.train.AdamOptimizer(learning_rate=
-                    lrate)
-                # optimizer = tf.train.GradientDescentOptimizer(
-                #     learning_rate=lrate
-                # )
+                # optimizer = tf.train.AdamOptimizer(learning_rate=
+                #     self.lrate)
+                optimizer = tf.train.GradientDescentOptimizer(
+                    learning_rate=self.lrate
+                )
                 self.train_op = optimizer.minimize(loss=self.loss,
                     global_step=global_step)
                 init_op = tf.global_variables_initializer()
@@ -115,13 +115,12 @@ class nn_model:
             self.saver = tf.train.Saver()
         self._graph.finalize()
 
-    def fit(self, states, actions, targets, lrate):
+    def fit(self, states, actions, targets):
         with self._graph.as_default():
             feed_dict = {
                 'states:0':states,
                 'actions:0':actions,
                 'targets:0':targets,
-                'lrate:0':lrate
             }
             self._sess.run(self.train_op, feed_dict)
 

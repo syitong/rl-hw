@@ -40,7 +40,7 @@ def dqn(N, num_episodes, env,
     nA = len(a_list)
     D = memory(N)
     dS = 2
-    model = nn_model(dS, a_list, 'test', lambda_) # implement two networks in one model with an update method.
+    model = nn_model(dS, a_list, 'test1', lambda_, lrate) # implement two networks in one model with an update method.
     Q = model.Q
     Qhat = model.Qhat
     num_steps = []
@@ -62,20 +62,22 @@ def dqn(N, num_episodes, env,
                 else:
                     y[idx] = batch[idx]['r'] + \
                         gamma * max(Qhat(batch[idx]['ss']))
-                s_batch += [list(batch[idx]['s'])]
+                s_batch += [batch[idx]['s']]
                 a_batch += [batch[idx]['a']]
-            model.fit(np.array(s_batch), np.array(a_batch), y, lrate)
+            model.fit(np.array(s_batch), np.array(a_batch), y)
+            s = ss.copy()
             if iter % 100 == 0:
                 loss = model.get_loss(np.array(s_batch), np.array(a_batch), y)
             if t % C == C - 1:
                 model.update()
             iter += 1
+            print('\repisode: {}, # of steps: {:<8}, loss: {:<4}'.format(episode, t, loss),end='')
             if done:
                 break
-            print('\repisode: {}, # of steps: {:<8}, loss: {:.3}'.format(episode, t, loss),end='')
             sys.stdout.flush()
         num_steps += [t]
     model.save()
+    print('\n')
     return num_steps
 
 def eval_perform(agent, env, rounds):
@@ -85,12 +87,14 @@ def eval_perform(agent, env, rounds):
         done = False
         s = env.reset()
         while not done:
-            a = ep_greedy(agent.Q, s, 0.1)
+            a = ep_greedy(agent.Q, s, 0.)
             ss, r, done, _ = env.step(a)
             score += r
-            s = ss
-        print(score)
+            s = ss.copy()
+            print('\r', score ,a, '            ', end='')
+        sys.stdout.flush()
         avg_score = (avg_score * idx + score) / (idx + 1)
+    print('\n')
     return avg_score
 
 def plot_dqn(num_steps):
@@ -123,6 +127,6 @@ if __name__ == '__main__':
     num_steps = dqn(N, num_episodes, env,
         ep_decay_rate, batch_size, gamma, a_list, C, lrate, lambda_)
     plot_dqn(num_steps)
-    agent = nn_model(2, a_list, 'test', lambda_, load=True) # implement two networks in one model with an update method.
+    agent = nn_model(2, a_list, 'test1', lambda_, lrate, load=True) # implement two networks in one model with an update method.
     rounds = 10
     print(eval_perform(agent, env, rounds))
