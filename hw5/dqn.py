@@ -35,7 +35,7 @@ class memory(list):
 def dqn(N, num_episodes, env,
         ep_start, batch_size,
         gamma, a_list, C, lrate, lambda_,
-        learning_starts=1000, T=20000):
+        learning_starts=1000, T=200):
     nA = len(a_list)
     D = memory(N)
     dS = 2
@@ -48,7 +48,7 @@ def dqn(N, num_episodes, env,
     for episode in range(num_episodes):
         s = env.reset()
         if iter > learning_starts:
-            ep = 0.1 + (ep_start-0.1) / (episode - start_episode + 1)
+            ep = ep_start - min(0.05 * (episode - start_episode), ep_start - 0.1)
         else:
             ep = 1.
         for t in range(T):
@@ -125,7 +125,7 @@ if __name__ == '__main__':
         max_episode_steps=1001,
         reward_threshold=-110.0,
     )
-    env = gym.make('MountainCar-v0')
+    env = gym.make('MountainCar-v1')
     ep_start = 1.
     batch_size = 32
     gamma = 1
