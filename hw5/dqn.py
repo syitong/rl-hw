@@ -35,7 +35,7 @@ class memory(list):
 def dqn(N, num_episodes, env,
         ep_start, batch_size,
         gamma, a_list, C, lrate, lambda_, test_rounds=10,
-        learning_starts=1000, T=200):
+        learning_starts=2000, T=200):
     nA = len(a_list)
     D = memory(N)
     dS = 2
@@ -48,7 +48,7 @@ def dqn(N, num_episodes, env,
     for episode in range(num_episodes):
         s = env.reset()
         if iter > learning_starts:
-            ep = ep_start - min(0.02 * (episode - start_episode), ep_start - 0.1)
+            ep = ep_start - min(0.01 * (episode - start_episode), ep_start - 0.1)
         else:
             ep = 1.
         for t in range(T):
