@@ -48,7 +48,7 @@ def dqn(N, num_episodes, env,
     for episode in range(num_episodes):
         s = env.reset()
         if iter > learning_starts:
-            ep = ep_start - min(0.01 * (episode - start_episode), ep_start - 0.1)
+            ep = ep_start - min(0.02 * (episode - start_episode), ep_start - 0.1)
         else:
             ep = 1.
         for t in range(T):
@@ -117,9 +117,10 @@ def plot_dqn(num_steps, name):
     plt.close()
 
 if __name__ == '__main__':
-    np.random.seed(3)
+    prefix = sys.argv[1]
+    # np.random.seed(3)
     N = 50000
-    num_episodes=501
+    num_episodes= 501
     register(
         id='MountainCar-v1',
         entry_point='gym.envs.classic_control:MountainCarEnv',
@@ -135,11 +136,10 @@ if __name__ == '__main__':
     lrate = 0.001
     lambda_ = 0.
 
-    for idx in range(5):
-        t1 = time.process_time()
-        num_steps, agent = dqn(N, num_episodes, env,
-            ep_start, batch_size, gamma, a_list, C, lrate, lambda_)
-        t2 = time.process_time()
-        print('training time:', t2-t1)
-        plot_dqn(num_steps, 'test-'+str(idx))
+    t1 = time.process_time()
+    num_steps, agent = dqn(N, num_episodes, env,
+        ep_start, batch_size, gamma, a_list, C, lrate, lambda_)
+    t2 = time.process_time()
+    print('training time:', t2-t1)
+    plot_dqn(num_steps, 'test-'+str(prefix))
     # agent = nn_model(2, a_list, 'test1', lambda_, lrate, load=True) # implement two networks in one model with an update method.
