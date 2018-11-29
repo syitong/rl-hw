@@ -35,7 +35,7 @@ class memory(list):
 def dqn(N, num_episodes, env,
         ep_start, batch_size,
         gamma, a_list, C, lrate, lambda_, test_rounds=10,
-        learning_starts=2000, T=200):
+        learning_starts=5000, T=5000):
     nA = len(a_list)
     D = memory(N)
     dS = 2
@@ -74,12 +74,12 @@ def dqn(N, num_episodes, env,
             s = ss.copy()
             if iter % 100 == 0:
                 loss = model.get_loss(np.array(s_batch), np.array(a_batch), y)
-            if iter > learning_starts and t % C == C - 1:
+            if iter > learning_starts and episode % C == C - 1:
                 model.update()
             iter += 1
-            # print('\repisode: {}, # of steps: {:<5}, loss: {:<.4}, # of success: {}     '.format(
-                # episode, t, loss, success),end='')
-            # sys.stdout.flush()
+            print('\repisode: {}, # of steps: {:<5}, loss: {:<.4}, # of success: {}     '.format(
+                episode, t, loss, success),end='')
+            sys.stdout.flush()
             if done:
                 break
         if t < 199:
@@ -101,10 +101,10 @@ def eval_perform(agent, env, rounds):
             ss, r, done, _ = env.step(a)
             score += r
             s = ss.copy()
-            # print('\r', score ,a, '            ', end='')
-        # sys.stdout.flush()
+            print('\r', score ,a, '            ', end='')
+        sys.stdout.flush()
         avg_score = (avg_score * idx + score) / (idx + 1)
-    print('\n')
+    print('')
     return avg_score
 
 def plot_dqn(num_steps, name):
@@ -124,7 +124,7 @@ if __name__ == '__main__':
     register(
         id='MountainCar-v1',
         entry_point='gym.envs.classic_control:MountainCarEnv',
-        max_episode_steps=1001,
+        max_episode_steps=5000,
         reward_threshold=-110.0,
     )
     env = gym.make('MountainCar-v1')
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     batch_size = 32
     gamma = 1
     a_list = [0,1,2]
-    C = 500
+    C = 3
     lrate = 0.001
     lambda_ = 0.
 
