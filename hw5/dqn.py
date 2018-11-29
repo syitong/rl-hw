@@ -34,7 +34,7 @@ class memory(list):
 
 def dqn(N, num_episodes, env,
         ep_start, batch_size,
-        gamma, a_list, C, lrate, lambda_,
+        gamma, a_list, C, lrate, lambda_, test_rounds=10,
         learning_starts=1000, T=200):
     nA = len(a_list)
     D = memory(N)
@@ -48,7 +48,7 @@ def dqn(N, num_episodes, env,
     for episode in range(num_episodes):
         s = env.reset()
         if iter > learning_starts:
-            ep = ep_start - min(0.005 * (episode - start_episode), ep_start - 0.05)
+            ep = ep_start - min(0.01 * (episode - start_episode), ep_start - 0.1)
         else:
             ep = 1.
         for t in range(T):
@@ -84,7 +84,8 @@ def dqn(N, num_episodes, env,
             sys.stdout.flush()
         if t < 199:
             success += 1
-        num_steps += [t]
+        if episode % 50 == 0:
+            num_steps += [eval_perform(model, env, test_rounds)]
     model.save()
     print('\n')
     return num_steps, model
@@ -100,8 +101,8 @@ def eval_perform(agent, env, rounds):
             ss, r, done, _ = env.step(a)
             score += r
             s = ss.copy()
-            print('\r', score ,a, '            ', end='')
-        sys.stdout.flush()
+            # print('\r', score ,a, '            ', end='')
+        # sys.stdout.flush()
         avg_score = (avg_score * idx + score) / (idx + 1)
     print('\n')
     return avg_score
@@ -110,8 +111,8 @@ def plot_dqn(num_steps):
     fig = plt.figure()
     plt.plot(np.array(num_steps))
     plt.title('Performance of DQN on Mountain Car')
-    plt.xlabel('episode')
-    plt.ylabel('# of steps')
+    plt.xlabel('per 50 episodes')
+    plt.ylabel('avg # of steps')
     plt.savefig('dqn_perform.eps')
     plt.close()
 
@@ -141,5 +142,3 @@ if __name__ == '__main__':
     print('training time:', t2-t1)
     plot_dqn(num_steps)
     # agent = nn_model(2, a_list, 'test1', lambda_, lrate, load=True) # implement two networks in one model with an update method.
-    rounds = 10
-    print(eval_perform(agent, env, rounds))
