@@ -21,9 +21,7 @@ class memory(list):
             super().pop(0)
             super().append(x)
     def sample(self,size):
-        output = []
-        for i in range(size):
-            output += [np.random.choice(self)]
+        output = np.random.choice(self,size)
         return output
 
 # def Qtable(Q, a_list):
@@ -36,7 +34,8 @@ class memory(list):
 
 def dqn(N, num_episodes, env,
         ep_start, batch_size,
-        gamma, a_list, C, lrate, lambda_, T=5000):
+        gamma, a_list, C, lrate, lambda_,
+        learning_starts=1000, T=20000):
     nA = len(a_list)
     D = memory(N)
     dS = 2
@@ -48,8 +47,13 @@ def dqn(N, num_episodes, env,
     iter = 0
     for episode in range(num_episodes):
         s = env.reset()
-        ep = 0.1 + (ep_start-0.1) / (success + 1)
+        if iter > learning_starts:
+            ep = 0.1 + (ep_start-0.1) / (episode - start_episode + 1)
+        else:
+            ep = 1.
         for t in range(T):
+            if iter == learning_starts:
+                start_episode = episode
             a = ep_greedy(Q, s, ep)
             ss, r, done, _ = env.step(a)
             D.add({'s':s,'a':a,'r':r,'ss':ss,'done':done})
@@ -65,23 +69,25 @@ def dqn(N, num_episodes, env,
                         gamma * max(Qhat(batch[idx]['ss']))
                 s_batch += [batch[idx]['s']]
                 a_batch += [batch[idx]['a']]
-            model.fit(np.array(s_batch), np.array(a_batch), y)
+            if iter > learning_starts:
+                model.fit(np.array(s_batch), np.array(a_batch), y)
             s = ss.copy()
             if iter % 100 == 0:
                 loss = model.get_loss(np.array(s_batch), np.array(a_batch), y)
-            if t % C == C - 1:
+            if iter > learning_starts and t % C == C - 1:
                 model.update()
             iter += 1
-            print('\repisode: {}, # of steps: {:<8}, loss: {:<4}'.format(episode, t, loss),end='')
+            print('\repisode: {}, # of steps: {:<5}, loss: {:<.4}, # of success: {}     '.format(
+                episode, t, loss, success),end='')
             if done:
                 break
             sys.stdout.flush()
-        if t < 4000:
+        if t < 199:
             success += 1
         num_steps += [t]
     model.save()
     print('\n')
-    return num_steps
+    return num_steps, model
 
 def eval_perform(agent, env, rounds):
     avg_score = 0
@@ -105,31 +111,35 @@ def plot_dqn(num_steps):
     plt.plot(np.array(num_steps))
     plt.title('Performance of DQN on Mountain Car')
     plt.xlabel('episode')
-    plt.ylabel('# of steps in log scale')
+    plt.ylabel('# of steps')
     plt.savefig('dqn_perform.eps')
     plt.close()
 
 if __name__ == '__main__':
-    N = 50
-    num_episodes=50
+    np.random.seed(3)
+    N = 50000
+    num_episodes=500
     register(
         id='MountainCar-v1',
         entry_point='gym.envs.classic_control:MountainCarEnv',
-        max_episode_steps=5000,
+        max_episode_steps=1001,
         reward_threshold=-110.0,
     )
-    env = gym.make('MountainCar-v1')
-    ep_start = 0.5
-    batch_size = 5
+    env = gym.make('MountainCar-v0')
+    ep_start = 1.
+    batch_size = 32
     gamma = 1
     a_list = [0,1,2]
-    C = 50
-    lrate = 0.00002
+    C = 500
+    lrate = 0.001
     lambda_ = 0.
 
-    num_steps = dqn(N, num_episodes, env,
+    t1 = time.process_time()
+    num_steps, agent = dqn(N, num_episodes, env,
         ep_start, batch_size, gamma, a_list, C, lrate, lambda_)
+    t2 = time.process_time()
+    print('training time:', t2-t1)
     plot_dqn(num_steps)
-    agent = nn_model(2, a_list, 'test1', lambda_, lrate, load=True) # implement two networks in one model with an update method.
+    # agent = nn_model(2, a_list, 'test1', lambda_, lrate, load=True) # implement two networks in one model with an update method.
     rounds = 10
     print(eval_perform(agent, env, rounds))
