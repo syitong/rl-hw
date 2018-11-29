@@ -113,7 +113,7 @@ def plot_dqn(num_steps, name):
     plt.title('Performance of DQN on Mountain Car')
     plt.xlabel('per 50 episodes')
     plt.ylabel('avg # of steps')
-    plt.savefig('dqn_perform-'+'.eps')
+    plt.savefig(name+'.eps')
     plt.close()
 
 if __name__ == '__main__':
