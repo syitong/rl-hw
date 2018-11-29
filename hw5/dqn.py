@@ -77,11 +77,11 @@ def dqn(N, num_episodes, env,
             if iter > learning_starts and t % C == C - 1:
                 model.update()
             iter += 1
-            print('\repisode: {}, # of steps: {:<5}, loss: {:<.4}, # of success: {}     '.format(
-                episode, t, loss, success),end='')
+            # print('\repisode: {}, # of steps: {:<5}, loss: {:<.4}, # of success: {}     '.format(
+                # episode, t, loss, success),end='')
+            # sys.stdout.flush()
             if done:
                 break
-            sys.stdout.flush()
         if t < 199:
             success += 1
         if episode % 50 == 0:
@@ -107,19 +107,19 @@ def eval_perform(agent, env, rounds):
     print('\n')
     return avg_score
 
-def plot_dqn(num_steps):
+def plot_dqn(num_steps, name):
     fig = plt.figure()
     plt.plot(np.array(num_steps))
     plt.title('Performance of DQN on Mountain Car')
     plt.xlabel('per 50 episodes')
     plt.ylabel('avg # of steps')
-    plt.savefig('dqn_perform.eps')
+    plt.savefig('dqn_perform-'+'.eps')
     plt.close()
 
 if __name__ == '__main__':
     np.random.seed(3)
     N = 50000
-    num_episodes=500
+    num_episodes=501
     register(
         id='MountainCar-v1',
         entry_point='gym.envs.classic_control:MountainCarEnv',
@@ -135,10 +135,11 @@ if __name__ == '__main__':
     lrate = 0.001
     lambda_ = 0.
 
-    t1 = time.process_time()
-    num_steps, agent = dqn(N, num_episodes, env,
-        ep_start, batch_size, gamma, a_list, C, lrate, lambda_)
-    t2 = time.process_time()
-    print('training time:', t2-t1)
-    plot_dqn(num_steps)
+    for idx in range(5):
+        t1 = time.process_time()
+        num_steps, agent = dqn(N, num_episodes, env,
+            ep_start, batch_size, gamma, a_list, C, lrate, lambda_)
+        t2 = time.process_time()
+        print('training time:', t2-t1)
+        plot_dqn(num_steps, 'test-'+str(idx))
     # agent = nn_model(2, a_list, 'test1', lambda_, lrate, load=True) # implement two networks in one model with an update method.
