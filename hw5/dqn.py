@@ -35,7 +35,7 @@ class memory(list):
 def dqn(N, num_episodes, env,
         ep_start, batch_size,
         gamma, a_list, C, lrate, lambda_, test_rounds=10,
-        learning_starts=5000, T=5000):
+        T=200):
     nA = len(a_list)
     D = memory(N)
     dS = 2
@@ -44,16 +44,19 @@ def dqn(N, num_episodes, env,
     Qhat = model.Qhat
     num_steps = []
     success = 0
+    learning_starts = False
     iter = 0
     for episode in range(num_episodes):
         s = env.reset()
-        if iter > learning_starts:
-            ep = ep_start - min(0.01 * (episode - start_episode), ep_start - 0.1)
+        if learning_starts:
+            ep = ep_start - min(0.01 * episode, ep_start - 0.1)
         else:
             ep = 1.
-        for t in range(T):
-            if iter == learning_starts:
-                start_episode = episode
+        if learning_starts:
+            max_steps = 200
+        else:
+            max_steps = 20000 
+        for t in range(max_steps):
             a = ep_greedy(Q, s, ep)
             ss, r, done, _ = env.step(a)
             D.add({'s':s,'a':a,'r':r,'ss':ss,'done':done})
@@ -69,25 +72,26 @@ def dqn(N, num_episodes, env,
                         gamma * max(Qhat(batch[idx]['ss']))
                 s_batch += [batch[idx]['s']]
                 a_batch += [batch[idx]['a']]
-            if iter > learning_starts:
+            if learning_starts:
                 model.fit(np.array(s_batch), np.array(a_batch), y)
             s = ss.copy()
             if iter % 100 == 0:
                 loss = model.get_loss(np.array(s_batch), np.array(a_batch), y)
-            if iter > learning_starts and episode % C == C - 1:
+            if learning_starts and episode % C == C - 1:
                 model.update()
             iter += 1
             print('\repisode: {}, # of steps: {:<5}, loss: {:<.4}, # of success: {}     '.format(
                 episode, t, loss, success),end='')
             sys.stdout.flush()
             if done:
+                learning_starts = True
                 break
         if t < 199:
             success += 1
         if episode % 50 == 0:
+            print('')
             num_steps += [eval_perform(model, env, test_rounds)]
     model.save()
-    print('\n')
     return num_steps, model
 
 def eval_perform(agent, env, rounds):
@@ -96,7 +100,7 @@ def eval_perform(agent, env, rounds):
         score = 0
         done = False
         s = env.reset()
-        while not done:
+        while not done and score < -1000:
             a = ep_greedy(agent.Q, s, 0.)
             ss, r, done, _ = env.step(a)
             score += r
@@ -124,7 +128,7 @@ if __name__ == '__main__':
     register(
         id='MountainCar-v1',
         entry_point='gym.envs.classic_control:MountainCarEnv',
-        max_episode_steps=5000,
+        max_episode_steps=20000,
         reward_threshold=-110.0,
     )
     env = gym.make('MountainCar-v1')
@@ -132,8 +136,8 @@ if __name__ == '__main__':
     batch_size = 32
     gamma = 1
     a_list = [0,1,2]
-    C = 3
-    lrate = 0.001
+    C = 2
+    lrate = 0.00001
     lambda_ = 0.
 
     t1 = time.process_time()
