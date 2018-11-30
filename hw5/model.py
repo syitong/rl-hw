@@ -23,8 +23,8 @@ class nn_model:
         self._sess = tf.Session(graph=self._graph)
         try:
             self._build()
-        except:
-            print('Model Initialization Fails!')
+        except Exception as e:
+            print('Model Initialization Fails! Because {}'.format(e))
         else:
             print('Model Generated!')
         if load == True:
@@ -105,12 +105,15 @@ class nn_model:
             with tf.variable_scope('optimize'):
                 optimizer = tf.train.AdamOptimizer(learning_rate=
                     self.lrate)
+                gvs = optimizer.compute_gradients(self.loss, self.w)
+                capped_gvs = [(tf.clip_by_value(grad, -10., 10.), var) for grad, var in gvs]
+                self.train_op = optimizer.apply_gradients(capped_gvs)
                 # optimizer = tf.train.GradientDescentOptimizer(
                 #     learning_rate=self.lrate
                 # )
                 # optimizer = tf.train.RMSPropOptimizer(learning_rate = self.lrate)
-                self.train_op = optimizer.minimize(loss=self.loss,
-                    global_step=global_step)
+                # self.train_op = optimizer.minimize(loss=self.loss,
+                #     global_step=global_step)
                 self.init_op = tf.global_variables_initializer()
             with tf.variable_scope('assign'):
                 for key in self.w.keys():
