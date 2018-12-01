@@ -24,28 +24,19 @@ class memory(list):
         output = np.random.choice(self,size)
         return output
 
-# def Qtable(Q, a_list):
-#     def proxy(s):
-#         Qtable = []
-#         for a in a_list:
-#             Qtable += [Q(s,a)]
-#         return Qtable
-#     return proxy
-
 def dqn(N, max_iter, env,
         ep_start, batch_size,
         gamma, a_list, C, lrate, lambda_, test_rounds=10,
-        learning_starts=1000, T=300, epsilon_rate=0.1):
+        learning_starts=32, T=200, epsilon_rate=0.1):
     nA = len(a_list)
     D = memory(N)
-    dS = 4
-    model = nn_model(dS, a_list, 'test1', lambda_, lrate) # implement two networks in one model with an update method.
+    nS = 2
+    model = nn_model(nS, a_list, 'test1', lrate) # implement two networks in one model with an update method.
     model.update()
     Q = model.Q
     Qhat = model.Qhat
     num_steps = []
     success = 0
-    learning_starts = False
     iter = 0
     while iter < max_iter:
         s = env.reset()
@@ -53,8 +44,8 @@ def dqn(N, max_iter, env,
         total_r = 0
         t = 0
         if iter > learning_starts:
-            ep = ep_start - min((ep_start - 0.02) /
-                0.1 * (max_iter - learning_starts) * iter, ep_start - 0.02)
+            ep = ep_start - min((ep_start - 0.1) /
+                (0.1 * (max_iter - learning_starts)) * (iter - learning_starts), ep_start - 0.1)
         else:
             ep = 1.
         while not done:
@@ -92,7 +83,7 @@ def dqn(N, max_iter, env,
             iter += 1
             if done:
                 break
-        if total_r > 199:
+        if total_r > -190:
             success += 1
         if success > 100:
             break
@@ -106,6 +97,7 @@ def eval_perform(agent, env, rounds):
         done = False
         s = env.reset()
         while not done:
+            env.render()
             a = ep_greedy(agent.Q, s, 0.)
             ss, r, done, _ = env.step(a)
             score += r
@@ -136,13 +128,14 @@ if __name__ == '__main__':
         max_episode_steps=20000,
         reward_threshold=-110.0,
     )
-    env = gym.make('CartPole-v0')
+    # env = gym.make('CartPole-v0')
+    env = gym.make('MountainCar-v0')
     ep_start = 1.
     batch_size = 32
     gamma = 0.9
-    a_list = [0,1]
-    C = 1
-    lrate = 0.0001
+    a_list = [0,1,2]
+    C = 500
+    lrate = 0.001
     lambda_ = 0.
 
     t1 = time.process_time()

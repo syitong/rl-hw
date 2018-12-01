@@ -9,12 +9,11 @@ def clipped_error(x):
       return tf.where(tf.abs(x) < 1.0, 0.5 * tf.square(x), tf.abs(x) - 0.5)
 
 class nn_model:
-    def __init__(self, dim, a_list, name, lambda_, lrate, load=False):
+    def __init__(self, nS, a_list, name, lrate, lambda_ = 0, load = False):
         self.lrate = lrate
-        self.lambda_ = lambda_
         self._name = name
         self._path = 'trained_agents/'
-        self.dim = dim
+        self.nS = nS
         self.a_list = a_list
         self.w = {}
         self.w_t = {}
@@ -55,65 +54,52 @@ class nn_model:
     def _build(self):
         with self._graph.as_default():
             global_step = tf.Variable(0, trainable=False, name='global')
-            s = tf.placeholder(dtype=tf.float32, shape=[None, self.dim], name='states')
+            s = tf.placeholder(dtype=tf.float32, shape=[None, self.nS], name='states')
             a = tf.placeholder(dtype=tf.uint8, shape=[None], name='actions')
             y = tf.placeholder(dtype=tf.float32, shape=[None], name='targets')
             onehot = tf.one_hot(a, depth=len(self.a_list))
             output_dim = len(self.a_list)
             with tf.variable_scope('train'):
                 self.w['l1w'] = l1w = tf.Variable(
-                    tf.glorot_uniform_initializer()((self.dim,64)))
+                    tf.truncated_normal((self.nS,64)))
                 self.w['l1b'] = l1b = tf.Variable(
-                    tf.constant(0., shape=[64]))
+                    tf.constant(0.01, shape=[64]))
                 L1 = tf.nn.relu(tf.matmul(s, l1w) + l1b)
-                # self.w['l2w'] = l2w = tf.Variable(
-                #     tf.glorot_uniform_initializer()((10,10)))
-                # self.w['l2b'] = l2b = tf.Variable(
-                #     tf.constant(0., shape=[10]))
-                # L2 = tf.nn.relu(tf.matmul(L1, l2w) + l2b)
-                # self.w['l3w'] = l3w = tf.Variable(
-                #     tf.glorot_uniform_initializer()((10,10)))
-                # self.w['l3b'] = l3b = tf.Variable(
-                #     tf.constant(0., shape=[10]))
-                # L3 = tf.nn.relu(tf.matmul(L2, l3w) + l3b)
-                self.w['l4w'] = l4w = tf.Variable(
-                    tf.glorot_uniform_initializer()((64,output_dim)))
-                self.pred = tf.matmul(L1,l4w)
-                q_act = tf.reduce_mean(self.pred * onehot, reduction_indices=1)
+                self.w['l2w'] = l2w = tf.Variable(
+                    tf.truncated_normal((64,output_dim)))
+                self.w['l2b'] = l2b = tf.Variable(
+                    tf.constant(0.01, shape=[output_dim]))
+                self.pred = tf.matmul(L1,l2w) + l2b
+                q_act = tf.reduce_sum(self.pred * onehot, reduction_indices=1)
                 self.loss = tf.reduce_mean(
-                    (clipped_error(q_act  - tf.reshape(y,[-1,1])))**2) \
+                    (q_act  - y)**2) \
                     # + self.lambda_ * (tf.norm(l1w) + tf.norm(l4w))
             with tf.variable_scope('target'):
                 self.w_t['l1w'] = l1w = tf.Variable(
-                    tf.constant(0., shape=[self.dim,64]))
+                    tf.constant(0., shape=[self.nS,64]))
                 self.w_t['l1b'] = l1b = tf.Variable(
                     tf.constant(0., shape=[64]))
                 L1 = tf.nn.relu(tf.matmul(s, l1w) + l1b)
-                # self.w_t['l2w'] = l2w = tf.Variable(
-                #     tf.constant(0., shape=[10,10]))
-                # self.w_t['l2b'] = l2b = tf.Variable(
-                #     tf.constant(0., shape=[10]))
-                # L2 = tf.nn.relu(tf.matmul(L1, l2w) + l2b)
-                # self.w_t['l3w'] = l3w = tf.Variable(
-                #     tf.constant(0., shape=[10,10]))
-                # self.w_t['l3b'] = l3b = tf.Variable(
-                #     tf.constant(0., shape=[10]))
-                # L3 = tf.nn.relu(tf.matmul(L2, l3w) + l3b)
-                self.w_t['l4w'] = l4w = tf.Variable(
+                self.w_t['l2w'] = l2w = tf.Variable(
                     tf.constant(0., shape=[64,output_dim]))
-                self.pred_t = tf.matmul(L1, l4w)
+                self.w_t['l2b'] = l2b = tf.Variable(
+                    tf.constant(0., shape=[output_dim]))
+                self.pred_t = tf.matmul(L1,l2w) + l2b
             with tf.variable_scope('optimize'):
                 optimizer = tf.train.AdamOptimizer(learning_rate=
                     self.lrate)
-                gvs = optimizer.compute_gradients(self.loss, self.w)
-                capped_gvs = [(tf.clip_by_value(grad, -10., 10.), var) for grad, var in gvs]
-                self.train_op = optimizer.apply_gradients(capped_gvs)
+                # Clip gradient
+                # gvs = optimizer.compute_gradients(self.loss, self.w)
+                # capped_gvs = [(tf.clip_by_value(grad, -10., 10.), var) for grad, var in gvs]
+                # self.train_op = optimizer.apply_gradients(capped_gvs)
+
                 # optimizer = tf.train.GradientDescentOptimizer(
                 #     learning_rate=self.lrate
                 # )
+
                 # optimizer = tf.train.RMSPropOptimizer(learning_rate = self.lrate)
-                # self.train_op = optimizer.minimize(loss=self.loss,
-                #     global_step=global_step)
+                self.train_op = optimizer.minimize(loss=self.loss,
+                    global_step=global_step)
                 self.init_op = tf.global_variables_initializer()
             with tf.variable_scope('assign'):
                 for key in self.w.keys():

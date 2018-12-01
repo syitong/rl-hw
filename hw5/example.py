@@ -1,4 +1,4 @@
-import gym
+import gym, sys
 import tensorflow as tf
 import numpy as np
 import random
@@ -76,7 +76,18 @@ class DQN():
       if done:
         y_batch.append(reward_batch[i])
       else :
+        input(reward_batch[i])
+        input(Q_value_batch[i])
         y_batch.append(reward_batch[i] + GAMMA * np.max(Q_value_batch[i]))
+
+    feed_dict = {
+      self.y_input:y_batch,
+      self.action_input:action_batch,
+      self.state_input:state_batch
+      }
+    loss = self.session.run(self.cost, feed_dict=feed_dict)
+    print('\rloss: {:.5}'.format(loss),end='')
+    sys.stdout.flush()
 
     self.optimizer.run(feed_dict={
       self.y_input:y_batch,
