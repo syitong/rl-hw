@@ -27,7 +27,8 @@ class memory(list):
         return output
 
 def dqn(N, env, ep_start, ep_end, ep_rate, batch_size,
-        gamma, a_list, C, lrate, lambda_, criteria, test_episodes=100):
+        gamma, a_list, C, lrate, lambda_, criteria, test_episodes=10,
+        learn_starts=5):
     nA = len(a_list)
     D = memory(N)
     nS = env.observation_space.shape[0]
@@ -36,19 +37,18 @@ def dqn(N, env, ep_start, ep_end, ep_rate, batch_size,
     Qhat = model.Qhat
     score_list = []
     iter = 0
-    episode = learn_starts = 0
+    episode = 0
     while True:
         s = env.reset()
         done = False
-        ep = ep_start - min(ep_rate * (episode - learn_starts), ep_start - ep_end)
+        ep = ep_start - min(ep_rate * (max(episode - learn_starts, 0)), ep_start - ep_end)
         while not done:
             a = ep_greedy(Q, s, ep)
             ss, r, done, _ = env.step(a)
             D.add({'s':s,'a':a,'r':r,'ss':ss,'done':done})
             s = ss
-            if iter < batch_size:
+            if episode < learn_starts:
                 iter += 1
-                learn_starts = episode
                 continue
             batch = D.sample(batch_size)
             y = np.empty(batch_size)
@@ -63,14 +63,14 @@ def dqn(N, env, ep_start, ep_end, ep_rate, batch_size,
                 s_batch += [batch[idx]['s']]
                 a_batch += [batch[idx]['a']]
             model.fit(np.array(s_batch), np.array(a_batch), y)
-            if iter % 100 == 0:
+            if iter % 10 == 0:
                 loss = model.get_loss(np.array(s_batch), np.array(a_batch), y)
                 print('\rtotal iter: {}, episode: {}, loss: {:<.4}     '.format(iter, episode, loss),end='')
                 sys.stdout.flush()
             if iter % C == C - 1:
                 model.update()
             iter += 1
-        if episode % 100 == 0:
+        if episode % 10 == 0:
             print('')
             score = eval_perform(model, env, test_episodes)
             score_list += [score]
@@ -87,7 +87,7 @@ def eval_perform(agent, env, episodes):
         done = False
         s = env.reset()
         while not done:
-            # env.render()
+            env.render()
             a = ep_greedy(agent.Q, s, 0.)
             ss, r, done, _ = env.step(a)
             score += r
@@ -107,19 +107,18 @@ def plot_dqn(num_steps, name):
 
 if __name__ == '__main__':
     np.random.seed(3)
-    name = 'CartPole-v0'
+    name = 'MountainCar-v0'
     env = gym.make(name)
     N = 10000
-    # env = gym.make('MountainCar-v0')
-    criteria = 195
-    ep_start = 0.5
-    ep_end = 0.01
-    ep_rate = 0.0001
+    criteria = -110
+    ep_start = 1.
+    ep_end = 0.1
+    ep_rate = 0.002
     batch_size = 32
     gamma = 1.
-    a_list = [0,1]
-    C = 1
-    lrate = 0.0001
+    a_list = [0,1,2]
+    C = 2
+    lrate = 0.001
     lambda_ = 0.
 
     t1 = time.process_time()
