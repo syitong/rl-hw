@@ -19,7 +19,8 @@ class nn_model:
         self.w_t = {}
         self.assign_op = {}
         self._graph = tf.Graph()
-        self._sess = tf.Session(graph=self._graph)
+        config = tf.ConfigProto(device_count = {'GPU': 0})
+        self._sess = tf.Session(graph=self._graph,config=config)
         try:
             self._build()
         except Exception as e:
