@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 plt.style.use('ggplot')
 from model import nn_model
 from utils import ep_greedy
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 class memory(list):
     def __init__(self,length):
