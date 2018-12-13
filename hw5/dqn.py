@@ -42,8 +42,10 @@ def dqn(N, env, ep_start, ep_end, ep_rate, batch_size,
         s = env.reset()
         done = False
         ep = ep_start - min(ep_rate * (max(episode - learn_starts, 0)), ep_start - ep_end)
+        w_noise = np.random.randn(64,len(a_list)) * ep
+        b_noise = np.random.randn(len(a_list)) * ep
         while not done:
-            a = ep_greedy(Q, s, ep)
+            a = ep_greedy(Q, s, w_noise, b_noise, 0)
             ss, r, done, _ = env.step(a)
             D.add({'s':s,'a':a,'r':r,'ss':ss,'done':done})
             s = ss
@@ -62,17 +64,18 @@ def dqn(N, env, ep_start, ep_end, ep_rate, batch_size,
                         gamma * max(Qhat(batch[idx]['ss']))
                 s_batch += [batch[idx]['s']]
                 a_batch += [batch[idx]['a']]
-            model.fit(np.array(s_batch), np.array(a_batch), y)
+            model.fit(np.array(s_batch), np.array(a_batch), y, w_noise, b_noise)
             if iter % 100 == 0:
-                loss = model.get_loss(np.array(s_batch), np.array(a_batch), y)
+                loss = model.get_loss(np.array(s_batch), np.array(a_batch), y,
+                        w_noise, b_noise)
                 print('\rtotal iter: {}, episode: {}, loss: {:<.4}     '.format(iter, episode, loss),end='')
                 sys.stdout.flush()
             if iter % C == C - 1:
                 model.update()
             iter += 1
-        if episode % 10 == 0:
+        if episode % 50 == 0:
             print('')
-            score = eval_perform(model, env, test_episodes)
+            score = eval_perform(model, env, test_episodes, a_list)
             score_list += [score]
             if score > criteria:
                 break
@@ -80,15 +83,17 @@ def dqn(N, env, ep_start, ep_end, ep_rate, batch_size,
     model.save()
     return score_list, model
 
-def eval_perform(agent, env, episodes):
+def eval_perform(agent, env, episodes, a_list):
     avg_score = 0
+    w_noise = np.zeros((64,len(a_list)))
+    b_noise = np.zeros(len(a_list))
     for idx in range(episodes):
         score = 0
         done = False
         s = env.reset()
         while not done:
-            # env.render()
-            a = ep_greedy(agent.Q, s, 0.)
+            env.render()
+            a = ep_greedy(agent.Q, s, w_noise, b_noise, 0.)
             ss, r, done, _ = env.step(a)
             score += r
             s = ss
@@ -113,9 +118,9 @@ if __name__ == '__main__':
     criteria = -110
     ep_start = 1.
     ep_end = 0.1
-    ep_rate = 0.01
+    ep_rate = 0.005
     batch_size = 32
-    gamma = 0.9
+    gamma = 1.
     a_list = [0,1,2]
     C = 500
     lrate = 0.001

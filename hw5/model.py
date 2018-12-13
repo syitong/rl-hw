@@ -38,12 +38,14 @@ class nn_model:
             self._sess.run(self.init_op)
             print('Model Initialized!')
 
-    def get_loss(self, states, actions, targets):
+    def get_loss(self, states, actions, targets, w_noise, b_noise):
         if hasattr(self, 'loss'):
             feed_dict = {
                 'states:0':states,
                 'actions:0':actions,
                 'targets:0':targets,
+                'train/w_noise:0':w_noise,
+                'train/b_noise:0':b_noise,
             }
             return self._sess.run(self.loss, feed_dict=feed_dict)
         else:
@@ -68,9 +70,15 @@ class nn_model:
                 L1 = tf.nn.relu(tf.matmul(s, l1w) + l1b)
                 self.w['l2w'] = l2w = tf.Variable(
                     tf.truncated_normal((64,output_dim)))
+                w_noise = tf.placeholder(dtype=tf.float32, 
+                        shape=l2w.get_shape().as_list(), name='w_noise')
+                l2w_p = l2w + tf.norm(l2w) * w_noise
                 self.w['l2b'] = l2b = tf.Variable(
                     tf.constant(0.01, shape=[output_dim]))
-                self.pred = tf.matmul(L1,l2w) + l2b
+                b_noise = tf.placeholder(dtype=tf.float32, 
+                        shape=l2b.get_shape().as_list(), name='b_noise')
+                l2b_p = l2b + tf.norm(l2b) * b_noise
+                self.pred = tf.matmul(L1,l2w_p) + l2b_p
                 q_act = tf.reduce_sum(self.pred * onehot, reduction_indices=1)
                 self.loss = tf.reduce_mean(
                     (q_act  - y)**2) \
@@ -108,23 +116,26 @@ class nn_model:
             self.saver = tf.train.Saver()
         self._graph.finalize()
 
-    def fit(self, states, actions, targets):
-        with self._graph.as_default():
-            feed_dict = {
-                'states:0':states,
-                'actions:0':actions,
-                'targets:0':targets,
-            }
-            self._sess.run(self.train_op, feed_dict)
+    def fit(self, states, actions, targets, w_noise, b_noise):
+        feed_dict = {
+            'states:0':states,
+            'actions:0':actions,
+            'targets:0':targets,
+            'train/w_noise:0':w_noise,
+            'train/b_noise:0':b_noise,
+        }
+        self._sess.run(self.train_op, feed_dict)
 
     def update(self):
         for key in self.w.keys():
             self._sess.run(self.assign_op[key])
 
     # evaluate the trained network
-    def Q(self, state):
+    def Q(self, state, w_noise, b_noise):
         feed_dict = {
             'states:0': np.array(state).reshape((1,-1)),
+            'train/w_noise:0':w_noise,
+            'train/b_noise:0':b_noise,
         }
         return self._sess.run(self.pred, feed_dict)[0]
 
