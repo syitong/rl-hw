@@ -63,7 +63,7 @@ def dqn(N, env, ep_start, ep_end, ep_rate, batch_size,
                 s_batch += [batch[idx]['s']]
                 a_batch += [batch[idx]['a']]
             model.fit(np.array(s_batch), np.array(a_batch), y)
-            if iter % 10 == 0:
+            if iter % 100 == 0:
                 loss = model.get_loss(np.array(s_batch), np.array(a_batch), y)
                 print('\rtotal iter: {}, episode: {}, loss: {:<.4}     '.format(iter, episode, loss),end='')
                 sys.stdout.flush()
@@ -87,7 +87,7 @@ def eval_perform(agent, env, episodes):
         done = False
         s = env.reset()
         while not done:
-            env.render()
+            # env.render()
             a = ep_greedy(agent.Q, s, 0.)
             ss, r, done, _ = env.step(a)
             score += r
@@ -113,11 +113,11 @@ if __name__ == '__main__':
     criteria = -110
     ep_start = 1.
     ep_end = 0.1
-    ep_rate = 0.002
+    ep_rate = 0.01
     batch_size = 32
-    gamma = 1.
+    gamma = 0.9
     a_list = [0,1,2]
-    C = 2
+    C = 500
     lrate = 0.001
     lambda_ = 0.
 
