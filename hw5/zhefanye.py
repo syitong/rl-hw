@@ -28,6 +28,8 @@ class DQN(object):
             setattr(self, key, value)
         self.policy_net = Net(self.state_space_dim, self.action_space_dim)
         self.target_net = Net(self.state_space_dim, self.action_space_dim)
+        self.policy_net.cuda()
+        self.target_net.cuda()
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.lr)
@@ -41,7 +43,7 @@ class DQN(object):
         if random.random() < epsilon:
             action = random.randrange(self.action_space_dim)
         else:
-            state = torch.tensor(state, dtype=torch.float).view(1, -1)
+            state = torch.tensor(state, dtype=torch.float).view(1, -1).cuda()
             action = torch.argmax(self.policy_net(state)).item()
         return action
 
@@ -56,12 +58,12 @@ class DQN(object):
 
         batch = random.sample(self.memory, self.batch_size)
         state, action, reward, next_state = zip(*batch)
-        state = torch.tensor(state, dtype=torch.float)
+        state = torch.tensor(state, dtype=torch.float).cuda()
         action = torch.tensor(action, dtype=torch.long).view(
-            self.batch_size, -1)
+            self.batch_size, -1).cuda()
         reward = torch.tensor(reward, dtype=torch.float).view(
-            self.batch_size, -1)
-        next_state = torch.tensor(next_state, dtype=torch.float)
+            self.batch_size, -1).cuda()
+        next_state = torch.tensor(next_state, dtype=torch.float).cuda()
 
         expected_q_values = reward + self.gamma * \
             torch.max(self.target_net(next_state).detach(), dim=1)[
@@ -132,7 +134,7 @@ def q1_a():
         state = env.reset()
         episode_reward = 0
         while True:
-            env.render()
+            # env.render()
             action = dqn.choose_action(state)
             next_state, reward, done, _ = env.step(action)
             if done:
@@ -181,7 +183,7 @@ def q1_b():
         state = env.reset()
         episode_reward = 0
         while True:
-            env.render()
+            # env.render()
             action = dqn.choose_action(state)
             next_state, reward, done, _ = env.step(action)
             if done:
@@ -208,5 +210,6 @@ def q1_b():
 
 
 if __name__ == "__main__":
+    torch.cuda.set_device(0)
     # q1_a()
     q1_b()
