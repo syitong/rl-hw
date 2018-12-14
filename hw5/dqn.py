@@ -28,7 +28,7 @@ class memory(list):
         return output
 
 def dqn(importance_sample, frame_repeats, M, N, env, ep_start, ep_end, ep_rate, batch_size,
-        gamma, a_list, C, lrate, criteria, test_episodes=10,
+        gamma, a_list, C, lrate, criteria, test_episodes=100,
         learn_starts = 5):
     nA = len(a_list)
     D = memory(N)
@@ -101,7 +101,7 @@ def eval_perform(agent, env, episodes):
         done = False
         s = env.reset()
         while not done:
-            env.render()
+            # env.render()
             a = ep_greedy(agent.Q, s, 0.)
             ss, r, done, _ = env.step(a)
             score += r
