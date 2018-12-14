@@ -28,7 +28,7 @@ class memory(list):
         return output
 
 def dqn(importance_sample, frame_repeats, M, N, env, ep_start, ep_end, ep_rate, batch_size,
-        gamma, a_list, C, lrate, lambda_, criteria, test_episodes=10,
+        gamma, a_list, C, lrate, criteria, test_episodes=10,
         learn_starts = 5):
     nA = len(a_list)
     D = memory(N)
@@ -101,7 +101,7 @@ def eval_perform(agent, env, episodes):
         done = False
         s = env.reset()
         while not done:
-            # env.render()
+            env.render()
             a = ep_greedy(agent.Q, s, 0.)
             ss, r, done, _ = env.step(a)
             score += r
@@ -137,12 +137,13 @@ if __name__ == '__main__':
     a_list = [0,1,2]
     C = 500
     lrate = 0.001
-    lambda_ = 0.
 
     t1 = time.process_time()
     score_list, agent = dqn(importance_sample, frame_repeats, M, N, env,
-        ep_start, ep_end, ep_rate, batch_size, gamma, a_list, C, lrate, lambda_, criteria)
+        ep_start, ep_end, ep_rate, batch_size, gamma, a_list, C, lrate, criteria)
     t2 = time.process_time()
     print('training time:', t2-t1)
     plot_dqn(score_list, name, suffix)
-    # agent = nn_model(2, a_list, 'test1', lambda_, lrate, load=True) # implement two networks in one model with an update method.
+    # Call the trained agent to test.
+    # agent = nn_model(2, a_list, 'test1', lrate, load=True)
+    # eval_perform(agent, env, 10)
