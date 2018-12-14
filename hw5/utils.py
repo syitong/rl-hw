@@ -1,19 +1,19 @@
 import numpy as np
 
-def _greedy(Q,s, w_noise, b_noise):
-    qmax = np.max(Q(s, w_noise, b_noise))
+def _greedy(Q,s):
+    qmax = np.max(Q(s))
     actions = []
-    for i,q in enumerate(Q(s, w_noise, b_noise)):
+    for i,q in enumerate(Q(s)):
         if q == qmax:
             actions.append(i)
     return actions
 
-def greedy(Q,s, w_noise, b_noise):
-    return np.random.choice(_greedy(Q, s, w_noise, b_noise))
+def greedy(Q,s):
+    return np.random.choice(_greedy(Q,s))
 
-def ep_greedy(Q,s,w_noise, b_noise,ep):
+def ep_greedy(Q,s,ep):
     # input(Q(s))
     if np.random.rand() < ep:
-        return np.random.choice(len(Q(s, w_noise, b_noise)))
+        return np.random.choice(len(Q(s)))
     else:
-        return greedy(Q,s, w_noise, b_noise)
+        return greedy(Q,s)
