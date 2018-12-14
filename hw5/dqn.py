@@ -11,6 +11,7 @@ from model import nn_model
 from utils import ep_greedy
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
+MAX_EP = 2000
 
 class memory(list):
     def __init__(self,length):
@@ -26,7 +27,7 @@ class memory(list):
         output = np.random.choice(self,size)
         return output
 
-def dqn(M, N, env, ep_start, ep_end, ep_rate, batch_size,
+def dqn(importance_sample, frame_repeats, M, N, env, ep_start, ep_end, ep_rate, batch_size,
         gamma, a_list, C, lrate, lambda_, criteria, test_episodes=10,
         learn_starts = 5):
     nA = len(a_list)
@@ -44,18 +45,18 @@ def dqn(M, N, env, ep_start, ep_end, ep_rate, batch_size,
         done = False
         ep = ep_start - min(ep_rate * (max(episode - learn_starts, 0)), ep_start - ep_end)
         while not done:
-            if iter % 4 == 0:
+            if iter % frame_repeats == 0:
                 a = ep_greedy(Q, s, ep)
             ss, r, done, _ = env.step(a)
-            if r < 0:
-                D.add({'s':s,'a':a,'r':r,'ss':ss,'done':done})
-            else:
+            if importance_sample and r >= 0:
                 S.add({'s':s,'a':a,'r':r,'ss':ss,'done':done})
+            else:
+                D.add({'s':s,'a':a,'r':r,'ss':ss,'done':done})
             s = ss
             if episode < learn_starts:
                 iter += 1
                 continue
-            if len(S) > 0:
+            if importance_sample and len(S) > 0:
                 batch = D.sample(batch_size - 1)
                 batch += S.sample(1)
             else:
@@ -80,13 +81,16 @@ def dqn(M, N, env, ep_start, ep_end, ep_rate, batch_size,
             if iter % C == C - 1:
                 model.update()
             iter += 1
-        if episode > learn_starts and episode % 10 == 0:
+        if episode > learn_starts and episode % 50 == 0:
             print('')
             score = eval_perform(model, env, test_episodes)
             score_list += [score]
             if score > criteria:
                 break
         episode += 1
+        if episode > MAX_EP:
+            print('exceed max episode')
+            break
     model.save()
     return score_list, model
 
@@ -97,7 +101,7 @@ def eval_perform(agent, env, episodes):
         done = False
         s = env.reset()
         while not done:
-            env.render()
+            # env.render()
             a = ep_greedy(agent.Q, s, 0.)
             ss, r, done, _ = env.step(a)
             score += r
@@ -106,16 +110,19 @@ def eval_perform(agent, env, episodes):
     print('avg_score: {}'.format(avg_score))
     return avg_score
 
-def plot_dqn(num_steps, name):
+def plot_dqn(num_steps, name, suffix):
     fig = plt.figure()
     plt.plot(np.array(num_steps))
-    plt.title('Performance of DQN on Mountain Car')
-    plt.xlabel('per 100 episodes')
+    plt.title('Performance of DQN on '+name)
+    plt.xlabel('per 50 episodes')
     plt.ylabel('score in testing')
-    plt.savefig(name+'.eps')
+    plt.savefig(name+'-'+suffix+'.eps')
     plt.close()
 
 if __name__ == '__main__':
+    frame_repeats = int(sys.argv[1])
+    importance_sample = bool(int(sys.argv[2]))
+    suffix = sys.argv[3]
     np.random.seed(3)
     name = 'MountainCar-v0'
     env = gym.make(name)
@@ -128,14 +135,14 @@ if __name__ == '__main__':
     batch_size = 32
     gamma = 1.
     a_list = [0,1,2]
-    C = 1000
+    C = 500
     lrate = 0.001
     lambda_ = 0.
 
     t1 = time.process_time()
-    score_list, agent = dqn(M, N, env,
+    score_list, agent = dqn(importance_sample, frame_repeats, M, N, env,
         ep_start, ep_end, ep_rate, batch_size, gamma, a_list, C, lrate, lambda_, criteria)
     t2 = time.process_time()
     print('training time:', t2-t1)
-    plot_dqn(score_list, name)
+    plot_dqn(score_list, name, suffix)
     # agent = nn_model(2, a_list, 'test1', lambda_, lrate, load=True) # implement two networks in one model with an update method.
