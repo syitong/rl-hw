@@ -116,7 +116,7 @@ def plot_dqn(num_steps, name, suffix):
     plt.title('Performance of DQN on '+name)
     plt.xlabel('per 50 episodes')
     plt.ylabel('score in testing')
-    plt.savefig(name+'-'+suffix+'.eps')
+    plt.savefig(name+'-'+suffix+'C_1.eps')
     plt.close()
 
 if __name__ == '__main__':
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     batch_size = 32
     gamma = 1.
     a_list = [0,1,2]
-    C = 500
+    C = 1
     lrate = 0.001
 
     t1 = time.process_time()
